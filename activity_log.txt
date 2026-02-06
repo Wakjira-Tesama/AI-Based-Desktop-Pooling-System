@@ -53,3 +53,4 @@ Commit at 2026-02-09T15:43:01: Optimize database queries in models.py
 Commit at 2026-02-10T10:27:15: Fix bug in SessionPage data fetching
 Commit at 2026-02-10T10:18:00: Fix bug in SessionPage data fetching
 Commit at 2026-02-10T10:36:25: Enhance dashboard visualization components
+Commit at 2026-02-06T12:56:58: Update README with installation steps
