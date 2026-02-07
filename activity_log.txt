@@ -67,3 +67,4 @@ Commit at 2026-02-07T10:23:45: Fix state management in DashboardPage
 Commit at 2026-02-07T13:32:04: Update requirements.txt with new dependencies
 Commit at 2026-02-07T16:34:55: Update frontend DashboardPage styling
 Commit at 2026-02-07T15:04:40: Update frontend DashboardPage styling
+Commit at 2026-02-07T10:26:48: Add logging to crud.py operations
