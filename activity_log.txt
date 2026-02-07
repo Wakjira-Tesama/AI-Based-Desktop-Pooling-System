@@ -76,3 +76,4 @@ Commit at 2026-02-07T18:08:47: Update requirements.txt with new dependencies
 Commit at 2026-02-07T11:04:27: Update frontend DashboardPage styling
 Commit at 2026-02-07T09:20:07: Add unit tests for crud operations
 Commit at 2026-02-07T14:12:45: Add logging to crud.py operations
+Commit at 2026-02-07T15:53:44: Improve responsive design in SessionPage.jsx
