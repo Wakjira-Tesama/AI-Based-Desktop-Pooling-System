@@ -80,3 +80,4 @@ Commit at 2026-02-07T15:53:44: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-08T14:03:30: Add logging to crud.py operations
 Commit at 2026-02-08T18:28:46: Add logging to crud.py operations
 Commit at 2026-02-08T16:52:46: Update requirements.txt with new dependencies
+Commit at 2026-02-08T09:23:37: Add logging to crud.py operations
