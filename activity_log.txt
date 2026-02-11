@@ -143,3 +143,4 @@ Commit at 2026-02-11T15:11:25: Update frontend DashboardPage styling
 Commit at 2026-02-11T12:23:45: Update seed_db.py with more test data
 Commit at 2026-02-11T14:39:36: Improve API error handling in main.py
 Commit at 2026-02-11T13:58:58: Update seed_db.py with more test data
+Commit at 2026-02-11T12:11:54: Add unit tests for crud operations
