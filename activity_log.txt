@@ -146,3 +146,4 @@ Commit at 2026-02-11T13:58:58: Update seed_db.py with more test data
 Commit at 2026-02-11T12:11:54: Add unit tests for crud operations
 Commit at 2026-02-11T12:39:17: Optimize database queries in models.py
 Commit at 2026-02-11T10:51:35: Enhance dashboard visualization components
+Commit at 2026-02-11T15:33:50: Improve responsive design in SessionPage.jsx
