@@ -181,3 +181,4 @@ Commit at 2026-02-12T16:37:03: Refactor backend authentication logic
 Commit at 2026-02-12T14:07:28: Update requirements.txt with new dependencies
 Commit at 2026-02-12T10:06:27: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-12T09:18:57: Add logging to crud.py operations
+Commit at 2026-02-12T09:58:28: Improve API error handling in main.py
