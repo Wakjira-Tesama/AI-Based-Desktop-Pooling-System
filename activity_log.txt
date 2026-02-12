@@ -229,3 +229,4 @@ Commit at 2026-02-12T15:56:34: Refactor backend authentication logic
 Commit at 2026-02-12T18:33:59: Update seed_db.py with more test data
 Commit at 2026-02-12T12:20:14: Implement password hashing in auth.py
 Commit at 2026-02-12T17:42:43: Update README with installation steps
+Commit at 2026-02-12T16:00:55: Refactor schemas.py for better validation
