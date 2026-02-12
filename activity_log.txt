@@ -201,3 +201,4 @@ Commit at 2026-02-12T11:29:38: Update seed_db.py with more test data
 Commit at 2026-02-12T12:12:12: Refactor schemas.py for better validation
 Commit at 2026-02-12T11:02:37: Update README with installation steps
 Commit at 2026-02-12T18:14:19: Improve responsive design in SessionPage.jsx
+Commit at 2026-02-12T09:18:06: Improve responsive design in SessionPage.jsx
