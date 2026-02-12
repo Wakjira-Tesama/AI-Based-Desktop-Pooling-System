@@ -206,3 +206,4 @@ Commit at 2026-02-12T10:02:39: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-12T09:16:30: Update requirements.txt with new dependencies
 Commit at 2026-02-12T09:56:26: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-12T11:36:43: Fix state management in DashboardPage
+Commit at 2026-02-12T13:54:10: Improve API error handling in main.py
