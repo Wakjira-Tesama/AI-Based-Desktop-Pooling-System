@@ -183,3 +183,4 @@ Commit at 2026-02-12T10:06:27: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-12T09:18:57: Add logging to crud.py operations
 Commit at 2026-02-12T09:58:28: Improve API error handling in main.py
 Commit at 2026-02-12T11:20:36: Update seed_db.py with more test data
+Commit at 2026-02-12T12:42:05: Refactor backend authentication logic
