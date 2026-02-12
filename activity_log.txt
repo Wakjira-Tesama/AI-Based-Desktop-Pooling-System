@@ -169,3 +169,4 @@ Commit at 2026-02-11T14:45:57: Fix state management in DashboardPage
 Commit at 2026-02-12T11:58:16: Fix bug in SessionPage data fetching
 Commit at 2026-02-12T18:16:20: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-12T11:26:45: Update seed_db.py with more test data
+Commit at 2026-02-12T16:15:58: Add logging to crud.py operations
