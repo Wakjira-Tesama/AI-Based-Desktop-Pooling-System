@@ -174,3 +174,4 @@ Commit at 2026-02-12T11:00:48: Add unit tests for crud operations
 Commit at 2026-02-12T14:39:55: Improve responsive design in SessionPage.jsx
 Commit at 2026-02-12T09:13:10: Update frontend DashboardPage styling
 Commit at 2026-02-12T12:14:34: Update README with installation steps
+Commit at 2026-02-12T16:24:06: Improve API error handling in main.py
