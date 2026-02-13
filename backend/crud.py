@@ -41,6 +41,9 @@ def get_desktops(db: Session, skip: int = 0, limit: int = 100):
 def get_desktop(db: Session, desktop_id: int):
     return db.query(models.Desktop).filter(models.Desktop.id == desktop_id).first()
 
+def get_desktop_by_desktop_id(db: Session, desktop_id: str):
+    return db.query(models.Desktop).filter(models.Desktop.desktop_id == desktop_id).first()
+
 def create_desktop(db: Session, desktop: schemas.DesktopCreate):
     db_desktop = models.Desktop(**desktop.model_dump())
     db.add(db_desktop)
@@ -144,4 +147,23 @@ def get_desktop_stats(db: Session):
     busy = db.query(models.Desktop).filter(models.Desktop.status == "busy").count()
     offline = db.query(models.Desktop).filter(models.Desktop.status == "offline").count()
     return {"total": total, "available": available, "busy": busy, "offline": offline}
+
+# Desktop Pairing
+def get_pairing_by_device_uuid(db: Session, device_uuid: str):
+    return db.query(models.DesktopPairing).filter(models.DesktopPairing.device_uuid == device_uuid).first()
+
+def get_pairing_by_desktop_id(db: Session, desktop_id: int):
+    return db.query(models.DesktopPairing).filter(models.DesktopPairing.desktop_id == desktop_id).first()
+
+def upsert_pairing(db: Session, device_uuid: str, desktop_id: int):
+    pairing = get_pairing_by_device_uuid(db, device_uuid)
+    if pairing:
+        pairing.desktop_id = desktop_id
+        pairing.paired_at = datetime.utcnow()
+    else:
+        pairing = models.DesktopPairing(device_uuid=device_uuid, desktop_id=desktop_id)
+        db.add(pairing)
+    db.commit()
+    db.refresh(pairing)
+    return pairing
 
