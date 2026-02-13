@@ -10,6 +10,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SessionPage from "./pages/SessionPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PairingPage from "./pages/PairingPage";
 
 function App() {
   const appMode = import.meta.env.MODE;
@@ -24,6 +25,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to={defaultRoute} replace />} />
+        <Route path="/pair" element={<PairingPage />} />
         <Route path="/student" element={<LoginPage role="student" />} />
         <Route path="/admin-login" element={<LoginPage role="admin" />} />
         <Route path="/register" element={<RegisterPage />} />
