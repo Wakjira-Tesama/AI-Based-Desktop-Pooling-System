@@ -8,8 +8,12 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    const deviceId = localStorage.getItem('device_uuid');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (deviceId) {
+      config.headers['X-Device-Id'] = deviceId;
     }
     return config;
   },
