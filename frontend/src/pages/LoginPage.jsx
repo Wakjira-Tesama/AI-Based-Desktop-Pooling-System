@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
@@ -8,6 +8,16 @@ export default function LoginPage({ role }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (role !== "student") {
+      return;
+    }
+    const pairedDesktopId = localStorage.getItem("paired_desktop_id");
+    if (!pairedDesktopId) {
+      navigate("/pair");
+    }
+  }, [navigate, role]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
