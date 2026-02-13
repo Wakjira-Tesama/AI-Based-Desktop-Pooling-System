@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [startingSession, setStartingSession] = useState(null);
   const [sessionDuration, setSessionDuration] = useState(60);
   const navigate = useNavigate();
+  const pairedDesktopId = localStorage.getItem("paired_desktop_id");
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,10 +48,14 @@ export default function DashboardPage() {
   }, [navigate]);
 
   useEffect(() => {
+    if (!pairedDesktopId) {
+      navigate("/pair");
+      return;
+    }
     fetchData();
     const interval = setInterval(fetchData, 10000); // Poll every 10 seconds
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, navigate, pairedDesktopId]);
 
   const handleStartSession = async (desktopId) => {
     setStartingSession(desktopId);
@@ -103,6 +108,19 @@ export default function DashboardPage() {
     );
   }
 
+  const visibleDesktops = pairedDesktopId
+    ? desktops.filter((d) => d.desktop_id === pairedDesktopId)
+    : desktops;
+  const availableCount = visibleDesktops.filter(
+    (desktop) => desktop.status === "available",
+  ).length;
+  const busyCount = visibleDesktops.filter(
+    (desktop) => desktop.status === "busy",
+  ).length;
+  const offlineCount = visibleDesktops.filter(
+    (desktop) => desktop.status === "offline",
+  ).length;
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="bg-gray-800 shadow border-b border-gray-700">
@@ -148,20 +166,19 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
               <span className="text-gray-400">
-                Available:{" "}
-                {desktops.filter((d) => d.status === "available").length}
+                Available: {availableCount}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-400"></div>
               <span className="text-gray-400">
-                Busy: {desktops.filter((d) => d.status === "busy").length}
+                Busy: {busyCount}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-gray-500"></div>
               <span className="text-gray-400">
-                Offline: {desktops.filter((d) => d.status === "offline").length}
+                Offline: {offlineCount}
               </span>
             </div>
             <div className="ml-auto flex items-center gap-2">
@@ -183,8 +200,8 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {desktops.length > 0 ? (
-              desktops.map((desktop) => (
+            {visibleDesktops.length > 0 ? (
+              visibleDesktops.map((desktop) => (
                 <div
                   key={desktop.id}
                   className={clsx(
