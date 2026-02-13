@@ -69,3 +69,17 @@ class HealthLog(HealthLogCreate):
     timestamp: datetime
     class Config:
         from_attributes = True
+
+# Desktop Pairing Schemas
+class DesktopPairingCreate(BaseModel):
+    device_uuid: str
+    desktop_id: str
+
+class DesktopPairing(BaseModel):
+    id: int
+    device_uuid: str
+    desktop_id: int
+    desktop_code: str
+    paired_at: datetime
+    class Config:
+        from_attributes = True
