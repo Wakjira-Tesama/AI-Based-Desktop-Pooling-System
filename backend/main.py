@@ -1,10 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 from . import crud, models, schemas, database, auth
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+from io import BytesIO
+import os
+import re
+import shutil
+
+import pytesseract
+from PIL import Image, ImageOps, ImageFilter
 
 models.Base.metadata.create_all(bind=database.engine)
 database.ensure_schema()
@@ -12,6 +19,8 @@ database.ensure_schema()
 app = FastAPI(title="SDPMS API", description="Smart AI Desktop Pooling & Usage Management System")
 
 ALLOWED_DESKTOP_STATUSES = {"offline", "available", "busy", "maintenance"}
+STUDENT_ID_PATTERN = re.compile(r"^ugr/\d{4,6}/\d{2}$", re.IGNORECASE)
+OCR_WHITELIST = "UGRugr0123456789/"
 
 # CORS
 app.add_middleware(
@@ -75,16 +84,143 @@ async def get_current_user_info(current_user: models.Student = Depends(auth.get_
 # ========== STUDENT ENDPOINTS ==========
 
 @app.post("/students/", response_model=schemas.Student)
-def create_student(student: schemas.StudentCreate, db: Session = Depends(get_db)):
+def create_student(
+    student_id: str = Form(...),
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    id_image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    if not STUDENT_ID_PATTERN.match(student_id.strip()):
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+    extracted_id = extract_id_from_image(id_image)
+    if not extracted_id:
+        raise HTTPException(status_code=400, detail="University ID not found in image")
+    if extracted_id.lower() != student_id.strip().lower():
+        raise HTTPException(status_code=400, detail="Student ID does not match uploaded ID")
     # Check if email already exists
-    db_student = crud.get_student_by_email(db, email=student.email)
+    db_student = crud.get_student_by_email(db, email=email)
     if db_student:
         raise HTTPException(status_code=400, detail="Email already registered")
     # Check if student_id already exists
-    db_student = crud.get_student_by_student_id(db, student_id=student.student_id)
+    db_student = crud.get_student_by_student_id(db, student_id=student_id)
     if db_student:
         raise HTTPException(status_code=400, detail="Student ID already registered")
+    student = schemas.StudentCreate(
+        student_id=student_id,
+        name=name,
+        email=email,
+        password=password,
+    )
     return crud.create_student(db=db, student=student)
+
+@app.post("/students/verify-id")
+def verify_student_id(
+    student_id: str = Form(...),
+    id_image: UploadFile = File(...),
+):
+    if not STUDENT_ID_PATTERN.match(student_id.strip()):
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+    extracted_id = extract_id_from_image(id_image)
+    if not extracted_id:
+        raise HTTPException(status_code=400, detail="University ID not found in image")
+    match = extracted_id.lower() == student_id.strip().lower()
+    return {
+        "extracted_id": extracted_id,
+        "matches": match,
+    }
+
+def extract_id_from_image(upload: UploadFile) -> str | None:
+    contents = upload.file.read()
+    if not contents:
+        return None
+    try:
+        image = Image.open(BytesIO(contents))
+        image = ImageOps.exif_transpose(image)
+        if image.mode not in ("RGB", "L"):
+            image = image.convert("RGB")
+    except Exception:
+        return None
+
+    tesseract_cmd = resolve_tesseract_cmd()
+    if tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+    else:
+        raise HTTPException(status_code=503, detail="OCR engine not available")
+
+    ocr_configs = [
+        f"--oem 3 --psm 6 -c tessedit_char_whitelist={OCR_WHITELIST}",
+        f"--oem 3 --psm 7 -c tessedit_char_whitelist={OCR_WHITELIST}",
+        f"--oem 3 --psm 11 -c tessedit_char_whitelist={OCR_WHITELIST}",
+        f"--oem 3 --psm 12 -c tessedit_char_whitelist={OCR_WHITELIST}",
+    ]
+    candidates = []
+
+    try:
+        variants = generate_image_variants(image)
+        for variant in variants:
+            for config in ocr_configs:
+                candidates.append(
+                    pytesseract.image_to_string(variant, config=config)
+                )
+    except Exception:
+        return None
+
+    for text in candidates:
+        normalized = normalize_ocr_text(text)
+        match = re.search(r"ugr/\d{4,6}/\d{2}", normalized)
+        if match:
+            return match.group(0)
+    return None
+
+def preprocess_id_image(image: Image.Image) -> Image.Image:
+    gray = ImageOps.grayscale(image)
+    gray = ImageOps.autocontrast(gray)
+    gray = gray.filter(ImageFilter.MedianFilter(size=3))
+    gray = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+    gray = gray.resize((gray.width * 2, gray.height * 2), Image.LANCZOS)
+    gray = gray.point(lambda x: 0 if x < 160 else 255, mode="1")
+    return gray
+
+def generate_image_variants(image: Image.Image) -> list[Image.Image]:
+    variants = []
+    for angle in (0, 90, 180, 270):
+        rotated = image.rotate(angle, expand=True)
+        variants.append(rotated)
+        variants.append(preprocess_id_image(rotated))
+    return variants
+
+def normalize_ocr_text(text: str) -> str:
+    cleaned = text.lower()
+    cleaned = cleaned.replace(" ", "")
+    cleaned = cleaned.replace("\n", "")
+    cleaned = cleaned.replace("\r", "")
+    cleaned = cleaned.replace("-", "/")
+    cleaned = cleaned.replace("\\", "/")
+    cleaned = cleaned.replace("|", "")
+    return cleaned
+
+def resolve_tesseract_cmd() -> str | None:
+    env_cmd = os.getenv("TESSERACT_CMD")
+    if env_cmd:
+        return env_cmd
+
+    path_cmd = shutil.which("tesseract")
+    if path_cmd:
+        return path_cmd
+
+    if os.name != "nt":
+        return None
+
+    candidates = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return None
 
 @app.get("/students/", response_model=List[schemas.Student])
 def read_students(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
@@ -151,7 +287,8 @@ def start_session_endpoint(
     desktop_id: int,
     duration_minutes: int = 60,
     db: Session = Depends(get_db),
-    current_user: models.Student = Depends(auth.get_current_user)
+    current_user: models.Student = Depends(auth.get_current_user),
+    device_id: str | None = Header(default=None, alias="X-Device-Id")
 ):
     # Check if user already has an active session
     existing_session = crud.get_active_session_by_student(db, current_user.id)
@@ -162,6 +299,12 @@ def start_session_endpoint(
     desktop = crud.get_desktop(db, desktop_id)
     if not desktop:
         raise HTTPException(status_code=404, detail="Desktop not found")
+    if not current_user.is_admin:
+        if not device_id:
+            raise HTTPException(status_code=400, detail="Device ID required")
+        pairing = crud.get_pairing_by_device_uuid(db, device_id)
+        if not pairing or pairing.desktop_id != desktop.id:
+            raise HTTPException(status_code=403, detail="Desktop not paired to this device")
     if desktop.status != "available":
         raise HTTPException(status_code=400, detail="Desktop is not available")
     
@@ -174,6 +317,27 @@ def start_session_endpoint(
         duration_minutes=duration_minutes
     )
     return crud.start_session(db=db, session=session_data)
+
+# ========== PAIRING ENDPOINTS ==========
+
+@app.post("/pairings/register", response_model=schemas.DesktopPairing)
+def register_pairing(payload: schemas.DesktopPairingCreate, db: Session = Depends(get_db)):
+    desktop = crud.get_desktop_by_desktop_id(db, payload.desktop_id)
+    if not desktop:
+        raise HTTPException(status_code=404, detail="Desktop ID not found")
+
+    existing_by_desktop = crud.get_pairing_by_desktop_id(db, desktop.id)
+    if existing_by_desktop and existing_by_desktop.device_uuid != payload.device_uuid:
+        raise HTTPException(status_code=409, detail="Desktop already paired")
+
+    pairing = crud.upsert_pairing(db, payload.device_uuid, desktop.id)
+    return schemas.DesktopPairing(
+        id=pairing.id,
+        device_uuid=pairing.device_uuid,
+        desktop_id=pairing.desktop_id,
+        desktop_code=desktop.desktop_id,
+        paired_at=pairing.paired_at,
+    )
 
 @app.post("/sessions/{session_id}/end", response_model=schemas.Session)
 def end_session_endpoint(session_id: int, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
