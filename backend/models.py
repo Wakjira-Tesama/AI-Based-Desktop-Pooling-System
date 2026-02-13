@@ -27,6 +27,7 @@ class Desktop(Base):
     
     sessions = relationship("Session", back_populates="desktop")
     health_logs = relationship("HealthLog", back_populates="desktop")
+    pairings = relationship("DesktopPairing", back_populates="desktop")
 
 class Session(Base):
     __tablename__ = "sessions"
@@ -53,3 +54,14 @@ class HealthLog(Base):
     network_status = Column(String) # connected, disconnected
     
     desktop = relationship("Desktop", back_populates="health_logs")
+
+
+class DesktopPairing(Base):
+    __tablename__ = "desktop_pairings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_uuid = Column(String, unique=True, index=True)
+    desktop_id = Column(Integer, ForeignKey("desktops.id"), unique=True)
+    paired_at = Column(DateTime, default=datetime.utcnow)
+
+    desktop = relationship("Desktop", back_populates="pairings")
