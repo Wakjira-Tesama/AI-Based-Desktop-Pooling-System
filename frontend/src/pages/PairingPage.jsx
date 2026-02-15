@@ -57,9 +57,6 @@ export default function PairingPage() {
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
             Pair This Desktop
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            Enter the desktop ID provided by the admin
-          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm">
