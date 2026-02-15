@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float, Date, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
 from datetime import datetime
@@ -65,3 +65,39 @@ class DesktopPairing(Base):
     paired_at = Column(DateTime, default=datetime.utcnow)
 
     desktop = relationship("Desktop", back_populates="pairings")
+
+
+class ScheduleEntry(Base):
+    __tablename__ = "schedule_entries"
+    __table_args__ = (
+        UniqueConstraint("desktop_id", "date", "start_time", "end_time"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    desktop_id = Column(Integer, ForeignKey("desktops.id"))
+    date = Column(Date)
+    start_time = Column(String)
+    end_time = Column(String)
+    student_id = Column(String, nullable=True)
+    mark = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+    desktop = relationship("Desktop")
+
+
+class IssueReport(Base):
+    __tablename__ = "issue_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"))
+    desktop_id = Column(Integer, ForeignKey("desktops.id"))
+    date = Column(Date)
+    start_time = Column(String)
+    end_time = Column(String)
+    category = Column(String)
+    description = Column(String, nullable=True)
+    status = Column(String, default="open")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("Student")
+    desktop = relationship("Desktop")
