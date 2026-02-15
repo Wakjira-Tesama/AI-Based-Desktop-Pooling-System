@@ -10,47 +10,81 @@ import DashboardPage from "./pages/DashboardPage";
 import SessionPage from "./pages/SessionPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
-import PairingPage from "./pages/PairingPage";
 
 function App() {
   const appMode = import.meta.env.MODE;
-  const defaultRoute =
-    appMode === "admin"
-      ? "/admin-login"
-      : appMode === "student"
-        ? "/student"
-        : "/student";
+  const isAdminMode = appMode === "admin";
+  const isStudentMode = appMode === "student";
+  const defaultRoute = isAdminMode ? "/admin-login" : "/student";
 
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to={defaultRoute} replace />} />
-        <Route path="/pair" element={<PairingPage />} />
-        <Route path="/student" element={<LoginPage role="student" />} />
-        <Route path="/admin-login" element={<LoginPage role="admin" />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/student"
+          element={
+            isAdminMode ? (
+              <Navigate to="/admin-login" replace />
+            ) : (
+              <LoginPage role="student" />
+            )
+          }
+        />
+        <Route
+          path="/admin-login"
+          element={
+            isStudentMode ? (
+              <Navigate to="/student" replace />
+            ) : (
+              <LoginPage role="admin" />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            isAdminMode ? (
+              <Navigate to="/admin-login" replace />
+            ) : (
+              <RegisterPage />
+            )
+          }
+        />
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute role="student">
-              <DashboardPage />
-            </ProtectedRoute>
+            isAdminMode ? (
+              <Navigate to="/admin-login" replace />
+            ) : (
+              <ProtectedRoute role="student">
+                <DashboardPage />
+              </ProtectedRoute>
+            )
           }
         />
         <Route
           path="/session"
           element={
-            <ProtectedRoute role="student">
-              <SessionPage />
-            </ProtectedRoute>
+            isAdminMode ? (
+              <Navigate to="/admin-login" replace />
+            ) : (
+              <ProtectedRoute role="student">
+                <SessionPage />
+              </ProtectedRoute>
+            )
           }
         />
         <Route
           path="/admin"
           element={
-            <ProtectedRoute role="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
+            isStudentMode ? (
+              <Navigate to="/student" replace />
+            ) : (
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            )
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
