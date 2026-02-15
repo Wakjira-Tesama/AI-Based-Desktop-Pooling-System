@@ -1,33 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
 
 export default function LoginPage({ role }) {
+  const [studentId, setStudentId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (role !== "student") {
-      return;
-    }
-    const pairedDesktopId = localStorage.getItem("paired_desktop_id");
-    if (!pairedDesktopId) {
-      navigate("/pair");
-    }
-  }, [navigate, role]);
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     const formData = new FormData();
-    formData.append("username", email);
-    formData.append("password", password);
+    if (role === "student") {
+      formData.append("student_id", studentId);
+      formData.append("email", email);
+    } else {
+      formData.append("username", email);
+      formData.append("password", password);
+    }
 
     try {
-      const response = await api.post("/token", formData);
+      const response = await api.post(
+        role === "student" ? "/students/login" : "/token",
+        formData,
+      );
       localStorage.setItem("token", response.data.access_token);
 
       const me = await api.get("/me");
@@ -53,53 +52,100 @@ export default function LoginPage({ role }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+    <div className="astu-shell flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <div className="astu-content w-full max-w-md space-y-8 astu-card p-8 astu-anim-in">
         <div>
-          <div className="mx-auto h-12 w-12 text-blue-500 flex items-center justify-center rounded-full bg-blue-500/10">
+          <img
+            src="/astu-logo.svg"
+            alt="ASTU logo"
+            className="astu-logo mx-auto"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+          <div className="mx-auto mt-4 h-12 w-12 text-blue-500 flex items-center justify-center rounded-full bg-blue-500/10">
             <LockClosedIcon className="h-6 w-6" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white astu-title">
             {role === "admin" ? "Admin sign in" : "Student sign in"}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
+          <p className="mt-2 text-center text-sm astu-subtitle">
             Access the Library Desktop Pooling System
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="-space-y-px rounded-md shadow-sm">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="relative block w-full rounded-t-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="relative block w-full rounded-b-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            {role === "student" ? (
+              <>
+                <div>
+                  <label htmlFor="student-id" className="sr-only">
+                    Student ID
+                  </label>
+                  <input
+                    id="student-id"
+                    name="student_id"
+                    type="text"
+                    autoComplete="off"
+                    required
+                    className="relative block w-full rounded-t-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
+                    placeholder="Student ID"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email-address" className="sr-only">
+                    Email address
+                  </label>
+                  <input
+                    id="email-address"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="relative block w-full rounded-b-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label htmlFor="email-address" className="sr-only">
+                    Email address
+                  </label>
+                  <input
+                    id="email-address"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="relative block w-full rounded-t-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="sr-only">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    className="relative block w-full rounded-b-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {error && (
@@ -134,23 +180,6 @@ export default function LoginPage({ role }) {
               </Link>
             </div>
           )}
-          <div className="text-center text-sm">
-            {role === "admin" ? (
-              <Link
-                to="/student"
-                className="font-medium text-gray-400 hover:text-gray-200 transition-colors"
-              >
-                Student login
-              </Link>
-            ) : (
-              <Link
-                to="/admin-login"
-                className="font-medium text-gray-400 hover:text-gray-200 transition-colors"
-              >
-                Admin login
-              </Link>
-            )}
-          </div>
         </form>
       </div>
     </div>
