@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from . import crud, models, schemas, database, auth
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
+from datetime import timedelta, date, datetime
 from io import BytesIO
 import os
 import re
@@ -77,6 +77,26 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/students/login", response_model=dict)
+def login_student_by_email(
+    student_id: str = Form(...),
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    student = crud.get_student_by_student_id(db, student_id.strip())
+    if not student or student.email.lower() != email.strip().lower():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect student ID or email",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": str(student.id)}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.get("/me", response_model=schemas.Student)
 async def get_current_user_info(current_user: models.Student = Depends(auth.get_current_user)):
     return current_user
@@ -88,7 +108,7 @@ def create_student(
     student_id: str = Form(...),
     name: str = Form(...),
     email: str = Form(...),
-    password: str = Form(...),
+    password: str | None = Form(default=None),
     id_image: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
@@ -169,9 +189,9 @@ def extract_id_from_image(upload: UploadFile) -> str | None:
 
     for text in candidates:
         normalized = normalize_ocr_text(text)
-        match = re.search(r"ugr/\d{4,6}/\d{2}", normalized)
+        match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
         if match:
-            return match.group(0)
+            return f"ugr/{match.group(1)}/{match.group(2)}"
     return None
 
 def preprocess_id_image(image: Image.Image) -> Image.Image:
@@ -199,6 +219,11 @@ def normalize_ocr_text(text: str) -> str:
     cleaned = cleaned.replace("-", "/")
     cleaned = cleaned.replace("\\", "/")
     cleaned = cleaned.replace("|", "")
+    cleaned = cleaned.replace("!", "1")
+    cleaned = cleaned.replace("l", "1")
+    cleaned = cleaned.replace("i", "1")
+    cleaned = cleaned.replace("s", "5")
+    cleaned = cleaned.replace("o", "0")
     return cleaned
 
 def resolve_tesseract_cmd() -> str | None:
@@ -235,6 +260,10 @@ def read_students(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 def read_desktops(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     desktops = crud.get_desktops(db, skip=skip, limit=limit)
     return desktops
+
+@app.get("/desktops/overview", response_model=List[schemas.DesktopOverview])
+def read_desktops_overview(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_desktop_overview(db, skip=skip, limit=limit)
 
 @app.post("/desktops/", response_model=schemas.Desktop)
 def create_desktop(desktop: schemas.DesktopCreate, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
@@ -318,6 +347,50 @@ def start_session_endpoint(
     )
     return crud.start_session(db=db, session=session_data)
 
+@app.post("/sessions/register", response_model=schemas.Session)
+def register_session_endpoint(
+    desktop_id: int = Form(...),
+    duration_minutes: int = Form(60),
+    student_id: str = Form(...),
+    name: str = Form(...),
+    id_image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.Student = Depends(auth.get_current_user),
+):
+    if student_id.strip().lower() != current_user.student_id.strip().lower():
+        raise HTTPException(status_code=403, detail="Student ID mismatch")
+    if name.strip().lower() != current_user.name.strip().lower():
+        raise HTTPException(status_code=403, detail="Student name mismatch")
+
+    if not STUDENT_ID_PATTERN.match(student_id.strip()):
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+
+    extracted_id = extract_id_from_image(id_image)
+    if not extracted_id:
+        raise HTTPException(status_code=400, detail="University ID not found in image")
+    if extracted_id.lower() != student_id.strip().lower():
+        raise HTTPException(status_code=400, detail="Student ID does not match uploaded ID")
+
+    existing_session = crud.get_active_session_by_student(db, current_user.id)
+    if existing_session:
+        raise HTTPException(status_code=400, detail="You already have an active session")
+
+    desktop = crud.get_desktop(db, desktop_id)
+    if not desktop:
+        raise HTTPException(status_code=404, detail="Desktop not found")
+    if desktop.status != "available":
+        raise HTTPException(status_code=400, detail="Desktop is not available")
+
+    if duration_minutes < 15 or duration_minutes > 240:
+        raise HTTPException(status_code=400, detail="Duration must be between 15 and 240 minutes")
+
+    session_data = schemas.SessionCreate(
+        student_id=current_user.id,
+        desktop_id=desktop_id,
+        duration_minutes=duration_minutes,
+    )
+    return crud.start_session(db=db, session=session_data)
+
 # ========== PAIRING ENDPOINTS ==========
 
 @app.post("/pairings/register", response_model=schemas.DesktopPairing)
@@ -347,6 +420,180 @@ def end_session_endpoint(session_id: int, db: Session = Depends(get_db), current
     if session.student_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not authorized to end this session")
     return crud.end_session(db, session_id)
+
+# ========== SCHEDULE ENDPOINTS ==========
+
+def _parse_time_string(value: str):
+    try:
+        return datetime.strptime(value, "%H:%M").time()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM")
+
+def _ensure_time_order(start_value: str, end_value: str) -> None:
+    start_time = _parse_time_string(start_value)
+    end_time = _parse_time_string(end_value)
+    if start_time >= end_time:
+        raise HTTPException(status_code=400, detail="Start time must be before end time")
+
+def _times_overlap(start_a, end_a, start_b, end_b) -> bool:
+    return start_a < end_b and start_b < end_a
+
+def _assert_schedule_slot_available(
+    db: Session,
+    desktop_id: int,
+    day: date,
+    start_time: str,
+    end_time: str,
+    student_id: str,
+) -> None:
+    _ensure_time_order(start_time, end_time)
+    existing = crud.get_schedule_entry(db, desktop_id, day, start_time, end_time)
+    if existing and existing.student_id:
+        if existing.student_id.strip().lower() != student_id.strip().lower():
+            raise HTTPException(status_code=409, detail="Time slot already booked")
+
+    entries = crud.get_student_schedule_entries_for_day(db, day, student_id)
+    for entry in entries:
+        if (
+            entry.desktop_id == desktop_id
+            and entry.start_time == start_time
+            and entry.end_time == end_time
+        ):
+            continue
+        raise HTTPException(
+            status_code=409,
+            detail="You already have a booking. Cancel it to register another.",
+        )
+    start_candidate = _parse_time_string(start_time)
+    end_candidate = _parse_time_string(end_time)
+    for entry in entries:
+        if (
+            entry.desktop_id == desktop_id
+            and entry.start_time == start_time
+            and entry.end_time == end_time
+        ):
+            continue
+        start_existing = _parse_time_string(entry.start_time)
+        end_existing = _parse_time_string(entry.end_time)
+        if _times_overlap(start_candidate, end_candidate, start_existing, end_existing):
+            raise HTTPException(
+                status_code=409,
+                detail="You already booked another time for this slot",
+            )
+
+@app.get("/schedule", response_model=List[schemas.ScheduleEntry])
+def get_schedule(day: date | None = None, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
+    target_day = day or date.today()
+    return crud.get_schedule_entries(db, target_day)
+
+@app.post("/schedule/entry", response_model=schemas.ScheduleEntry | dict)
+def upsert_schedule(entry: schemas.ScheduleEntryCreate, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
+    _ensure_time_order(entry.start_time, entry.end_time)
+    if (not entry.student_id) and (not entry.mark):
+        existing = crud.get_schedule_entry(
+            db,
+            entry.desktop_id,
+            entry.date,
+            entry.start_time,
+            entry.end_time,
+        )
+        if existing and (not current_user.is_admin):
+            if existing.student_id.strip().lower() != current_user.student_id.strip().lower():
+                raise HTTPException(status_code=403, detail="Not authorized to clear this booking")
+    if entry.student_id:
+        if (not current_user.is_admin) and entry.student_id.strip().lower() != current_user.student_id.strip().lower():
+            raise HTTPException(status_code=403, detail="Not authorized to book for another student")
+        _assert_schedule_slot_available(
+            db,
+            entry.desktop_id,
+            entry.date,
+            entry.start_time,
+            entry.end_time,
+            entry.student_id,
+        )
+    saved = crud.upsert_schedule_entry(db, entry)
+    if not saved:
+        return {"message": "Entry cleared"}
+    return saved
+
+@app.post("/schedule/register", response_model=schemas.ScheduleEntry)
+def register_schedule(
+    desktop_id: int = Form(...),
+    date_value: date = Form(..., alias="date"),
+    start_time: str = Form(...),
+    end_time: str = Form(...),
+    student_id: str = Form(...),
+    name: str = Form(...),
+    id_image: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    current_user: models.Student = Depends(auth.get_current_user),
+):
+    if student_id.strip().lower() != current_user.student_id.strip().lower():
+        raise HTTPException(status_code=403, detail="Student ID mismatch")
+    if name.strip().lower() != current_user.name.strip().lower():
+        raise HTTPException(status_code=403, detail="Student name mismatch")
+
+    if not STUDENT_ID_PATTERN.match(student_id.strip()):
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+
+    if id_image is not None:
+        extracted_id = extract_id_from_image(id_image)
+        if not extracted_id:
+            raise HTTPException(status_code=400, detail="University ID not found in image")
+        if extracted_id.lower() != student_id.strip().lower():
+            raise HTTPException(status_code=400, detail="Student ID does not match uploaded ID")
+
+    desktop = crud.get_desktop(db, desktop_id)
+    if not desktop:
+        raise HTTPException(status_code=404, detail="Desktop not found")
+
+    _assert_schedule_slot_available(
+        db,
+        desktop_id,
+        date_value,
+        start_time,
+        end_time,
+        student_id,
+    )
+
+    entry = schemas.ScheduleEntryCreate(
+        desktop_id=desktop_id,
+        date=date_value,
+        start_time=start_time,
+        end_time=end_time,
+        student_id=current_user.student_id,
+        mark="reserved",
+    )
+    return crud.upsert_schedule_entry(db, entry)
+
+# ========== ISSUE REPORTS ==========
+
+@app.post("/issues/report", response_model=schemas.IssueReport)
+def report_issue(
+    payload: schemas.IssueReportCreate,
+    db: Session = Depends(get_db),
+    current_user: models.Student = Depends(auth.get_current_user),
+):
+    entry = crud.get_schedule_entry(
+        db,
+        payload.desktop_id,
+        payload.date,
+        payload.start_time,
+        payload.end_time,
+    )
+    if not entry or (entry.student_id or "").strip().lower() != current_user.student_id.strip().lower():
+        raise HTTPException(status_code=403, detail="Not authorized to report for this booking")
+
+    return crud.create_issue_report(db, payload, current_user.id)
+
+@app.get("/issues", response_model=List[schemas.IssueReport])
+def list_issue_reports(
+    db: Session = Depends(get_db),
+    current_user: models.Student = Depends(auth.get_current_user),
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return crud.get_issue_reports(db)
 
 # ========== ANALYTICS ENDPOINTS ==========
 
