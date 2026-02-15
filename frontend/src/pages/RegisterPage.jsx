@@ -8,8 +8,6 @@ export default function RegisterPage() {
     student_id: "",
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,6 +29,16 @@ export default function RegisterPage() {
     });
   };
 
+  const getErrorMessage = (err, fallback) => {
+    const detail = err?.response?.data?.detail;
+    if (!detail) return fallback;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      return detail.map((item) => item?.msg || JSON.stringify(item)).join(", ");
+    }
+    return JSON.stringify(detail);
+  };
+
   const submitRegistration = async () => {
     if (!idFile) {
       setError("Please upload or capture your university ID");
@@ -42,31 +50,25 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
     setLoading(true);
     try {
       const payload = new FormData();
       payload.append("student_id", formData.student_id.trim());
       payload.append("name", formData.name.trim());
       payload.append("email", formData.email.trim());
-      payload.append("password", formData.password);
       payload.append("id_image", idFile);
 
       await api.post("/students/", payload, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       const loginForm = new FormData();
-      loginForm.append("username", formData.student_id.trim());
-      loginForm.append("password", formData.password);
-      const loginResponse = await api.post("/token", loginForm);
+      loginForm.append("student_id", formData.student_id.trim());
+      loginForm.append("email", formData.email.trim());
+      const loginResponse = await api.post("/students/login", loginForm);
       localStorage.setItem("token", loginResponse.data.access_token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.detail || "Registration failed");
+      setError(getErrorMessage(err, "Registration failed"));
       console.error(err);
     } finally {
       setLoading(false);
@@ -118,12 +120,8 @@ export default function RegisterPage() {
             student_id: extractedId,
           }));
         }
-        const fieldsReady =
-          formData.name.trim() &&
-          formData.email.trim() &&
-          formData.password &&
-          formData.confirmPassword;
-        if (fieldsReady && formData.password === formData.confirmPassword) {
+        const fieldsReady = formData.name.trim() && formData.email.trim();
+        if (fieldsReady) {
           await submitRegistration();
         }
       } else {
@@ -134,7 +132,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       setIdCheckSuccess(false);
-      setIdCheckMessage(err.response?.data?.detail || "ID check failed");
+      setIdCheckMessage(getErrorMessage(err, "ID check failed"));
     } finally {
       setCheckingId(false);
     }
@@ -155,7 +153,7 @@ export default function RegisterPage() {
           videoRef.current.srcObject = stream;
           setCameraReady(true);
         }
-      } catch (err) {
+      } catch {
         setError("Camera access denied");
       }
     };
@@ -190,16 +188,24 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+    <div className="astu-shell flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <div className="astu-content w-full max-w-md space-y-8 astu-card p-8 astu-anim-in">
         <div>
-          <div className="mx-auto h-12 w-12 text-emerald-500 flex items-center justify-center rounded-full bg-emerald-500/10">
+          <img
+            src="/astu-logo.svg"
+            alt="ASTU logo"
+            className="astu-logo mx-auto"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+          <div className="mx-auto mt-4 h-12 w-12 text-emerald-500 flex items-center justify-center rounded-full bg-emerald-500/10">
             <UserPlusIcon className="h-6 w-6" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white astu-title">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
+          <p className="mt-2 text-center text-sm astu-subtitle">
             Register to use the Library Desktop Pooling System
           </p>
         </div>
@@ -344,42 +350,6 @@ export default function RegisterPage() {
                 className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
                 placeholder="you@example.com"
                 value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
-                placeholder="••••••••"
-                value={formData.confirmPassword}
                 onChange={handleChange}
               />
             </div>
