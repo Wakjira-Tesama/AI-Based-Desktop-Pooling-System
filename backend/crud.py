@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from passlib.context import CryptContext
+import secrets
 
 pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
@@ -22,7 +23,8 @@ def get_student_by_student_id(db: Session, student_id: str):
     return db.query(models.Student).filter(models.Student.student_id == student_id).first()
 
 def create_student(db: Session, student: schemas.StudentCreate):
-    hashed_password = get_password_hash(student.password)
+    raw_password = student.password or secrets.token_urlsafe(16)
+    hashed_password = get_password_hash(raw_password)
     db_student = models.Student(
         student_id=student.student_id, 
         name=student.name, 
@@ -37,6 +39,42 @@ def create_student(db: Session, student: schemas.StudentCreate):
 # Desktop CRUD
 def get_desktops(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Desktop).offset(skip).limit(limit).all()
+
+def get_desktop_overview(db: Session, skip: int = 0, limit: int = 100):
+    desktops = get_desktops(db, skip=skip, limit=limit)
+    active_sessions = get_active_sessions(db)
+    active_by_desktop = {session.desktop_id: session for session in active_sessions}
+    now = datetime.utcnow()
+    overview = []
+
+    for desktop in desktops:
+        session = active_by_desktop.get(desktop.id)
+        busy_until = None
+        busy_remaining = None
+        available_since = None
+
+        if session:
+            duration = session.duration_minutes or 60
+            busy_until = session.start_time + timedelta(minutes=duration)
+            remaining_seconds = max(0, (busy_until - now).total_seconds())
+            busy_remaining = int((remaining_seconds + 59) // 60)
+        elif desktop.status == "available":
+            available_since = desktop.last_heartbeat
+
+        overview.append(
+            {
+                "id": desktop.id,
+                "desktop_id": desktop.desktop_id,
+                "ip_address": desktop.ip_address,
+                "status": desktop.status,
+                "last_heartbeat": desktop.last_heartbeat,
+                "busy_until": busy_until,
+                "busy_remaining_minutes": busy_remaining,
+                "available_since": available_since,
+            }
+        )
+
+    return overview
 
 def get_desktop(db: Session, desktop_id: int):
     return db.query(models.Desktop).filter(models.Desktop.id == desktop_id).first()
@@ -166,4 +204,108 @@ def upsert_pairing(db: Session, device_uuid: str, desktop_id: int):
     db.commit()
     db.refresh(pairing)
     return pairing
+
+# Schedule CRUD
+def get_schedule_entries(db: Session, day: date):
+    return db.query(models.ScheduleEntry).filter(models.ScheduleEntry.date == day).all()
+
+def get_schedule_entry(
+    db: Session,
+    desktop_id: int,
+    day: date,
+    start_time: str,
+    end_time: str,
+):
+    return db.query(models.ScheduleEntry).filter(
+        models.ScheduleEntry.desktop_id == desktop_id,
+        models.ScheduleEntry.date == day,
+        models.ScheduleEntry.start_time == start_time,
+        models.ScheduleEntry.end_time == end_time,
+    ).first()
+
+def get_student_schedule_entries(
+    db: Session,
+    desktop_id: int,
+    day: date,
+    student_id: str,
+):
+    return db.query(models.ScheduleEntry).filter(
+        models.ScheduleEntry.desktop_id == desktop_id,
+        models.ScheduleEntry.date == day,
+        models.ScheduleEntry.student_id == student_id,
+    ).all()
+
+def get_student_schedule_entries_for_day(
+    db: Session,
+    day: date,
+    student_id: str,
+):
+    return db.query(models.ScheduleEntry).filter(
+        models.ScheduleEntry.date == day,
+        models.ScheduleEntry.student_id == student_id,
+    ).all()
+
+def upsert_schedule_entry(db: Session, entry: schemas.ScheduleEntryCreate):
+    existing = db.query(models.ScheduleEntry).filter(
+        models.ScheduleEntry.desktop_id == entry.desktop_id,
+        models.ScheduleEntry.date == entry.date,
+        models.ScheduleEntry.start_time == entry.start_time,
+        models.ScheduleEntry.end_time == entry.end_time,
+    ).first()
+
+    if (not entry.student_id) and (not entry.mark):
+        if existing:
+            db.delete(existing)
+            db.commit()
+        return None
+
+    if existing:
+        existing.student_id = entry.student_id
+        existing.mark = entry.mark
+        existing.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    new_entry = models.ScheduleEntry(
+        desktop_id=entry.desktop_id,
+        date=entry.date,
+        start_time=entry.start_time,
+        end_time=entry.end_time,
+        student_id=entry.student_id,
+        mark=entry.mark,
+        updated_at=datetime.utcnow(),
+    )
+    db.add(new_entry)
+    db.commit()
+    db.refresh(new_entry)
+    return new_entry
+
+# Issue Reports
+def create_issue_report(
+    db: Session,
+    report: schemas.IssueReportCreate,
+    student_id: int,
+):
+    db_report = models.IssueReport(
+        student_id=student_id,
+        desktop_id=report.desktop_id,
+        date=report.date,
+        start_time=report.start_time,
+        end_time=report.end_time,
+        category=report.category,
+        description=report.description,
+        status="open",
+    )
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+def get_issue_reports(db: Session):
+    return (
+        db.query(models.IssueReport)
+        .order_by(models.IssueReport.created_at.desc())
+        .all()
+    )
 
