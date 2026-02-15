@@ -1,42 +1,165 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+:root {
+  --astu-navy: #0b1424;
+  --astu-slate: #121c2f;
+  --astu-ice: #e2e8f0;
+  --astu-blue: #4f87ff;
+  --astu-emerald: #43d3a6;
+  --astu-gold: #f2c46d;
 }
 
-@keyframes logo-spin {
+.astu-shell {
+  min-height: 100vh;
+  position: relative;
+  background:
+    radial-gradient(
+      1200px circle at 15% 10%,
+      rgba(79, 135, 255, 0.18),
+      transparent 50%
+    ),
+    radial-gradient(
+      900px circle at 85% 20%,
+      rgba(67, 211, 166, 0.16),
+      transparent 55%
+    ),
+    var(--astu-navy);
+  color: var(--astu-ice);
+  overflow: hidden;
+}
+
+.astu-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(130deg, rgba(8, 15, 30, 0.92), rgba(8, 15, 30, 0.6)),
+    url("/astu-campus.svg");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.18;
+  filter: saturate(1.1) contrast(1.05);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.astu-shell::after {
+  content: "";
+  position: fixed;
+  inset: -20% 0 auto auto;
+  height: 420px;
+  width: 420px;
+  background: radial-gradient(
+    circle,
+    rgba(242, 196, 109, 0.22),
+    transparent 70%
+  );
+  filter: blur(20px);
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.astu-content {
+  position: relative;
+  z-index: 1;
+}
+
+.astu-card {
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(16px);
+}
+
+.astu-panel {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(14px);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.astu-panel:hover {
+  transform: translateY(-2px);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 24px 50px rgba(2, 6, 23, 0.55);
+}
+
+.astu-tile {
+  position: relative;
+  overflow: hidden;
+}
+
+.astu-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.08),
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.astu-tile:hover::after {
+  opacity: 1;
+}
+
+.astu-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.6));
+  animation: astu-float 7s ease-in-out infinite;
+}
+
+.astu-title {
+  font-family: "Sora", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.astu-subtitle {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.astu-anim-in {
+  animation: astu-rise 0.6s ease-out both;
+}
+
+@keyframes astu-rise {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(12px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@keyframes astu-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
   }
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+@media (prefers-reduced-motion: reduce) {
+  .astu-anim-in,
+  .astu-logo {
+    animation: none;
+  }
 }
