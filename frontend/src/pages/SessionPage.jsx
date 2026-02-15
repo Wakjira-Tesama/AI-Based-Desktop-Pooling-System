@@ -45,7 +45,7 @@ export default function SessionPage() {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     fetchSession();
@@ -125,14 +125,14 @@ export default function SessionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="astu-shell flex items-center justify-center">
+        <div className="astu-content animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="astu-shell text-white flex flex-col">
       {/* Warning Banner */}
       {warning && timeLeft > 0 && (
         <div
@@ -150,7 +150,7 @@ export default function SessionPage() {
         </div>
       )}
 
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="astu-content flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-lg">
           {/* Session Card */}
           <div className="bg-gray-800 rounded-3xl border border-gray-700 shadow-2xl overflow-hidden">
