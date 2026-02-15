@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date
 
 # Student Schemas
 class StudentBase(BaseModel):
@@ -9,7 +9,7 @@ class StudentBase(BaseModel):
     email: str
 
 class StudentCreate(StudentBase):
-    password: str
+    password: Optional[str] = None
 
 class StudentLogin(BaseModel):
     student_id: str
@@ -37,6 +37,19 @@ class DesktopStatusUpdate(BaseModel):
 class Desktop(DesktopBase):
     id: int
     last_heartbeat: Optional[datetime]
+    class Config:
+        from_attributes = True
+
+class DesktopOverview(BaseModel):
+    id: int
+    desktop_id: str
+    ip_address: str
+    status: str
+    last_heartbeat: Optional[datetime]
+    busy_until: Optional[datetime] = None
+    busy_remaining_minutes: Optional[int] = None
+    available_since: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
@@ -81,5 +94,43 @@ class DesktopPairing(BaseModel):
     desktop_id: int
     desktop_code: str
     paired_at: datetime
+    class Config:
+        from_attributes = True
+
+# Schedule Schemas
+class ScheduleEntryBase(BaseModel):
+    desktop_id: int
+    date: date
+    start_time: str
+    end_time: str
+    student_id: Optional[str] = None
+    mark: Optional[str] = None
+
+class ScheduleEntryCreate(ScheduleEntryBase):
+    pass
+
+class ScheduleEntry(ScheduleEntryBase):
+    id: int
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+
+# Issue Report Schemas
+class IssueReportBase(BaseModel):
+    desktop_id: int
+    date: date
+    start_time: str
+    end_time: str
+    category: str
+    description: Optional[str] = None
+
+class IssueReportCreate(IssueReportBase):
+    pass
+
+class IssueReport(IssueReportBase):
+    id: int
+    student_id: int
+    status: str
+    created_at: datetime
     class Config:
         from_attributes = True
