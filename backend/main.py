@@ -22,19 +22,28 @@ ALLOWED_DESKTOP_STATUSES = {"offline", "available", "busy", "maintenance"}
 STUDENT_ID_PATTERN = re.compile(r"^ugr/\d{4,6}/\d{2}$", re.IGNORECASE)
 OCR_WHITELIST = "UGRugr0123456789/"
 
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5479",
+    "http://localhost:5480",
+    "http://localhost:5481",
+    "http://localhost:5482",
+    "http://localhost:5483",
+]
+
+cors_env = os.getenv("CORS_ORIGINS", "")
+ALLOWED_CORS_ORIGINS = [
+    origin.strip()
+    for origin in cors_env.split(",")
+    if origin.strip()
+] or DEFAULT_CORS_ORIGINS
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5479",
-        "http://localhost:5480",
-        "http://localhost:5481",
-        "http://localhost:5482",
-        "http://localhost:5483",
-    ], # Frontend URLs
+    allow_origins=ALLOWED_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

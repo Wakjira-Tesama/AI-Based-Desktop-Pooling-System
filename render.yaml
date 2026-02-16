@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: sdpms-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: CORS_ORIGINS
+        value: https://sdpms-frontend.onrender.com,http://localhost:5173,http://localhost:5479,http://localhost:5480
+
+  - type: static_site
+    name: sdpms-frontend
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://sdpms-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
