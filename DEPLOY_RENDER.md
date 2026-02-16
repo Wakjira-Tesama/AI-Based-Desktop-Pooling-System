@@ -9,6 +9,7 @@ This project is configured for Render using `render.yaml`.
 - Managed Postgres database: `sdpms-db`
 - SPA rewrite for frontend routes
 - Environment-based API URL and CORS
+- Optional auto-seeding on backend start (`AUTO_SEED=true`)
 
 ## 1) Push this repo to GitHub
 
@@ -30,8 +31,14 @@ After first creation, check these values in Render:
 - `SECRET_KEY` (auto-generated)
 - `ACCESS_TOKEN_EXPIRE_MINUTES=30`
 - `DATABASE_URL` (auto-linked from Render database)
+- `AUTO_SEED=true` (creates seed users/desktops if missing)
 - `CORS_ORIGINS`
   - Must include your real frontend URL (for example: `https://sdpms-frontend.onrender.com`)
+
+Seed user env vars (can be customized in Render):
+
+- `SEED_STUDENT_EMAIL`, `SEED_STUDENT_PASSWORD`
+- `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`
 
 ### Frontend (`sdpms-frontend`)
 
@@ -43,6 +50,15 @@ If your generated Render service URLs differ from `sdpms-frontend` or `sdpms-bac
 ## 4) Redeploy after env changes
 
 If you change env vars, trigger redeploy for both services.
+
+## 5) First login after deploy
+
+With `AUTO_SEED=true`, use seeded credentials from backend env vars:
+
+- Student: `SEED_STUDENT_EMAIL` / `SEED_STUDENT_PASSWORD`
+- Admin: `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`
+
+After first successful setup, you can set `AUTO_SEED=false` if you do not want startup seeding checks.
 
 ## Important note about free hosting
 

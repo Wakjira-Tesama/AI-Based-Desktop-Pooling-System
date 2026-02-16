@@ -10,7 +10,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    startCommand: bash -lc 'if [ "$AUTO_SEED" = "true" ]; then python seed_db.py; fi; uvicorn backend.main:app --host 0.0.0.0 --port $PORT'
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
@@ -18,12 +18,30 @@ services:
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 30
+      - key: AUTO_SEED
+        value: true
       - key: CORS_ORIGINS
         value: https://sdpms-frontend.onrender.com,http://localhost:5173,http://localhost:5479,http://localhost:5480
       - key: DATABASE_URL
         fromDatabase:
           name: sdpms-db
           property: connectionString
+      - key: SEED_STUDENT_ID
+        value: STU001
+      - key: SEED_STUDENT_NAME
+        value: Test Student
+      - key: SEED_STUDENT_EMAIL
+        value: student@test.com
+      - key: SEED_STUDENT_PASSWORD
+        value: password123
+      - key: SEED_ADMIN_ID
+        value: MGR001
+      - key: SEED_ADMIN_NAME
+        value: Library Manager
+      - key: SEED_ADMIN_EMAIL
+        value: manager@test.com
+      - key: SEED_ADMIN_PASSWORD
+        value: admin123
 
   - type: static_site
     name: sdpms-frontend
