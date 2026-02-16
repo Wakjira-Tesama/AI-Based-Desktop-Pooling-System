@@ -43,8 +43,9 @@ services:
       - key: SEED_ADMIN_PASSWORD
         value: admin123
 
-  - type: static_site
+  - type: web
     name: sdpms-frontend
+    runtime: static
     plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
