@@ -2,13 +2,11 @@ databases:
   - name: sdpms-db
     databaseName: sdpms
     user: sdpms_user
-    plan: free
 
 services:
   - type: web
     name: sdpms-backend
     runtime: python
-    plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: bash -lc 'if [ "$AUTO_SEED" = "true" ]; then python seed_db.py; fi; uvicorn backend.main:app --host 0.0.0.0 --port $PORT'
     envVars:
@@ -46,7 +44,6 @@ services:
   - type: web
     name: sdpms-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
