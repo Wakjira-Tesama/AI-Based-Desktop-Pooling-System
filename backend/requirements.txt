@@ -9,3 +9,4 @@ bcrypt
 python-multipart
 pytesseract
 pillow
+psycopg2-binary

@@ -1,3 +1,9 @@
+databases:
+  - name: sdpms-db
+    databaseName: sdpms
+    user: sdpms_user
+    plan: free
+
 services:
   - type: web
     name: sdpms-backend
@@ -14,6 +20,10 @@ services:
         value: 30
       - key: CORS_ORIGINS
         value: https://sdpms-frontend.onrender.com,http://localhost:5173,http://localhost:5479,http://localhost:5480
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sdpms-db
+          property: connectionString
 
   - type: static_site
     name: sdpms-frontend

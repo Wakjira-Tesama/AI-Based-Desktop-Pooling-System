@@ -6,6 +6,7 @@ This project is configured for Render using `render.yaml`.
 
 - Backend web service (`FastAPI`): `sdpms-backend`
 - Frontend static site (`Vite`): `sdpms-frontend`
+- Managed Postgres database: `sdpms-db`
 - SPA rewrite for frontend routes
 - Environment-based API URL and CORS
 
@@ -28,6 +29,7 @@ After first creation, check these values in Render:
 
 - `SECRET_KEY` (auto-generated)
 - `ACCESS_TOKEN_EXPIRE_MINUTES=30`
+- `DATABASE_URL` (auto-linked from Render database)
 - `CORS_ORIGINS`
   - Must include your real frontend URL (for example: `https://sdpms-frontend.onrender.com`)
 
@@ -44,9 +46,9 @@ If you change env vars, trigger redeploy for both services.
 
 ## Important note about free hosting
 
-- This project currently uses SQLite (`sql_app.db`).
-- On free cloud instances, local filesystem is not durable across restarts/redeploys.
-- For persistent production data, switch to a managed DB and set `DATABASE_URL`.
+- This setup uses managed Postgres (`sdpms-db`) for persistent data.
+- If your Render account does not offer free Postgres, keep the same backend config and use an external free Postgres provider (for example Neon/Supabase), then set backend `DATABASE_URL` manually.
+- Do not rely on SQLite in production on Render because local filesystem is not durable.
 
 ## Optional: Deploy only backend (quick API test)
 
