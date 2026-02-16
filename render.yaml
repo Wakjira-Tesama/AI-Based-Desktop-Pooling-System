@@ -1,8 +1,3 @@
-databases:
-  - name: sdpms-db
-    databaseName: sdpms
-    user: sdpms_user
-
 services:
   - type: web
     name: sdpms-backend
@@ -20,10 +15,6 @@ services:
         value: true
       - key: CORS_ORIGINS
         value: https://sdpms-frontend.onrender.com,http://localhost:5173,http://localhost:5479,http://localhost:5480
-      - key: DATABASE_URL
-        fromDatabase:
-          name: sdpms-db
-          property: connectionString
       - key: SEED_STUDENT_ID
         value: STU001
       - key: SEED_STUDENT_NAME

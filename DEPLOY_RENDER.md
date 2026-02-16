@@ -6,7 +6,6 @@ This project is configured for Render using `render.yaml`.
 
 - Backend web service (`FastAPI`): `sdpms-backend`
 - Frontend static site (`Vite`): `sdpms-frontend`
-- Managed Postgres database: `sdpms-db`
 - SPA rewrite for frontend routes
 - Environment-based API URL and CORS
 - Optional auto-seeding on backend start (`AUTO_SEED=true`)
@@ -30,7 +29,6 @@ After first creation, check these values in Render:
 
 - `SECRET_KEY` (auto-generated)
 - `ACCESS_TOKEN_EXPIRE_MINUTES=30`
-- `DATABASE_URL` (auto-linked from Render database)
 - `AUTO_SEED=true` (creates seed users/desktops if missing)
 - `CORS_ORIGINS`
   - Must include your real frontend URL (for example: `https://sdpms-frontend.onrender.com`)
@@ -62,9 +60,9 @@ After first successful setup, you can set `AUTO_SEED=false` if you do not want s
 
 ## Important note about free hosting
 
-- This setup uses managed Postgres (`sdpms-db`) for persistent data.
-- If your Render account does not offer free Postgres, keep the same backend config and use an external free Postgres provider (for example Neon/Supabase), then set backend `DATABASE_URL` manually.
-- Do not rely on SQLite in production on Render because local filesystem is not durable.
+- This no-payment setup uses SQLite fallback (no managed DB service).
+- Render free web instances have ephemeral disk, so data can reset after restart/redeploy.
+- If you need persistent data without paid Render DB, use external free Postgres (for example Neon/Supabase) and set backend `DATABASE_URL` manually.
 
 ## Optional: Deploy only backend (quick API test)
 
