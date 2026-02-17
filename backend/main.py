@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
 from . import crud, models, schemas, database, auth
-from .seed_db import seed
+from seed_db import seed
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta, date, datetime
 from io import BytesIO
