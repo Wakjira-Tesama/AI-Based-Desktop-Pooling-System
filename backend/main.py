@@ -201,6 +201,7 @@ def extract_id_from_image(upload: UploadFile) -> str | None:
         image = ImageOps.exif_transpose(image)
         if image.mode not in ("RGB", "L"):
             image = image.convert("RGB")
+        image = downscale_image(image, max_width=800)
     except Exception:
         return None
 
@@ -212,41 +213,36 @@ def extract_id_from_image(upload: UploadFile) -> str | None:
 
     ocr_configs = [
         f"--oem 3 --psm 6 -c tessedit_char_whitelist={OCR_WHITELIST}",
-        f"--oem 3 --psm 7 -c tessedit_char_whitelist={OCR_WHITELIST}",
-        f"--oem 3 --psm 11 -c tessedit_char_whitelist={OCR_WHITELIST}",
-        f"--oem 3 --psm 12 -c tessedit_char_whitelist={OCR_WHITELIST}",
     ]
-    candidates = []
 
     try:
         variants = generate_image_variants(image)
         for variant in variants:
             for config in ocr_configs:
-                candidates.append(
-                    pytesseract.image_to_string(variant, config=config)
-                )
+                text = pytesseract.image_to_string(variant, config=config)
+                normalized = normalize_ocr_text(text)
+                match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
+                if match:
+                    return f"ugr/{match.group(1)}/{match.group(2)}"
     except Exception:
         return None
-
-    for text in candidates:
-        normalized = normalize_ocr_text(text)
-        match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
-        if match:
-            return f"ugr/{match.group(1)}/{match.group(2)}"
     return None
+
+def downscale_image(image: Image.Image, max_width: int = 800) -> Image.Image:
+    if image.width <= max_width:
+        return image
+    scale = max_width / image.width
+    height = int(image.height * scale)
+    return image.resize((max_width, height), Image.LANCZOS)
 
 def preprocess_id_image(image: Image.Image) -> Image.Image:
     gray = ImageOps.grayscale(image)
     gray = ImageOps.autocontrast(gray)
-    gray = gray.filter(ImageFilter.MedianFilter(size=3))
-    gray = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
-    gray = gray.resize((gray.width * 2, gray.height * 2), Image.LANCZOS)
-    gray = gray.point(lambda x: 0 if x < 160 else 255, mode="1")
     return gray
 
 def generate_image_variants(image: Image.Image) -> list[Image.Image]:
     variants = []
-    for angle in (0, 90, 180, 270):
+    for angle in (0, 180):
         rotated = image.rotate(angle, expand=True)
         variants.append(rotated)
         variants.append(preprocess_id_image(rotated))
