@@ -5,7 +5,13 @@ import os
 import sqlite3
 from pathlib import Path
 
-SQLITE_DATABASE_URL = "sqlite:///./sql_app.db"
+DEFAULT_SQLITE_PATH = "./sql_app.db"
+SQLITE_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_PATH}"
+
+# Vercel serverless file system is read-only except /tmp.
+if os.getenv("VERCEL") and not os.getenv("DATABASE_URL"):
+    SQLITE_DATABASE_URL = "sqlite:////tmp/sql_app.db"
+
 DATABASE_URL = os.getenv("DATABASE_URL", SQLITE_DATABASE_URL)
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -19,10 +25,22 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+def _resolve_sqlite_path(db_url: str) -> str | None:
+    if not db_url.startswith("sqlite"):
+        return None
+    if db_url.startswith("sqlite:////"):
+        return db_url.replace("sqlite:////", "/", 1)
+    if db_url.startswith("sqlite:///"):
+        return db_url.replace("sqlite:///", "", 1)
+    if db_url.startswith("sqlite://"):
+        return db_url.replace("sqlite://", "", 1)
+    return None
+
 def ensure_schema():
     if not DATABASE_URL.startswith("sqlite"):
         return
-    db_path = Path("./sql_app.db")
+    sqlite_path = _resolve_sqlite_path(DATABASE_URL) or DEFAULT_SQLITE_PATH
+    db_path = Path(sqlite_path)
     if not db_path.exists():
         return
     conn = sqlite3.connect(db_path)
