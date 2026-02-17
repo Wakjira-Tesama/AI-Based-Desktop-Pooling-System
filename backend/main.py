@@ -147,10 +147,10 @@ def create_student(
     def _op():
         if not STUDENT_ID_PATTERN.match(student_id.strip()):
             raise HTTPException(status_code=400, detail="Invalid student ID format")
-        extracted_id = extract_id_from_image(id_image)
+        extracted_id, matched = extract_id_match(id_image, student_id)
         if not extracted_id:
             raise HTTPException(status_code=400, detail="University ID not found in image")
-        if extracted_id.lower() != student_id.strip().lower():
+        if not matched:
             raise HTTPException(status_code=400, detail="Student ID does not match uploaded ID")
         # Check if email already exists
         db_student = crud.get_student_by_email(db, email=email)
@@ -183,27 +183,28 @@ def verify_student_id(
 ):
     if not STUDENT_ID_PATTERN.match(student_id.strip()):
         raise HTTPException(status_code=400, detail="Invalid student ID format")
-    extracted_id = extract_id_from_image(id_image)
+    extracted_id, matched = extract_id_match(id_image, student_id)
     if not extracted_id:
         raise HTTPException(status_code=400, detail="University ID not found in image")
-    match = extracted_id.lower() == student_id.strip().lower()
     return {
         "extracted_id": extracted_id,
-        "matches": match,
+        "matches": matched,
     }
 
-def extract_id_from_image(upload: UploadFile) -> str | None:
+def extract_id_match(
+    upload: UploadFile,
+    expected_id: str | None,
+) -> tuple[str | None, bool]:
     contents = upload.file.read()
     if not contents:
-        return None
+        return None, False
     try:
         image = Image.open(BytesIO(contents))
         image = ImageOps.exif_transpose(image)
         if image.mode not in ("RGB", "L"):
             image = image.convert("RGB")
-        image = downscale_image(image, max_width=800)
     except Exception:
-        return None
+        return None, False
 
     tesseract_cmd = resolve_tesseract_cmd()
     if tesseract_cmd:
@@ -211,22 +212,53 @@ def extract_id_from_image(upload: UploadFile) -> str | None:
     else:
         raise HTTPException(status_code=503, detail="OCR engine not available")
 
+    expected = expected_id.strip().lower() if expected_id else None
+    fast_candidates = extract_id_candidates(image, fast=True)
+    if expected:
+        for candidate in fast_candidates:
+            if candidate.lower() == expected:
+                return candidate, True
+
+    slow_candidates = extract_id_candidates(image, fast=False)
+    if expected:
+        for candidate in slow_candidates:
+            if candidate.lower() == expected:
+                return candidate, True
+
+    combined = fast_candidates + [
+        candidate for candidate in slow_candidates
+        if candidate not in fast_candidates
+    ]
+    if combined:
+        return combined[0], False
+    return None, False
+
+def extract_id_candidates(image: Image.Image, fast: bool) -> list[str]:
+    candidates = []
+    max_width = 800 if fast else 1200
+    working = downscale_image(image, max_width=max_width)
     ocr_configs = [
         f"--oem 3 --psm 6 -c tessedit_char_whitelist={OCR_WHITELIST}",
     ]
+    if not fast:
+        ocr_configs.append(
+            f"--oem 3 --psm 7 -c tessedit_char_whitelist={OCR_WHITELIST}"
+        )
 
     try:
-        variants = generate_image_variants(image)
+        variants = generate_image_variants(working, fast=fast)
         for variant in variants:
             for config in ocr_configs:
                 text = pytesseract.image_to_string(variant, config=config)
                 normalized = normalize_ocr_text(text)
                 match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
                 if match:
-                    return f"ugr/{match.group(1)}/{match.group(2)}"
+                    candidate = f"ugr/{match.group(1)}/{match.group(2)}"
+                    if candidate not in candidates:
+                        candidates.append(candidate)
     except Exception:
-        return None
-    return None
+        return candidates
+    return candidates
 
 def downscale_image(image: Image.Image, max_width: int = 800) -> Image.Image:
     if image.width <= max_width:
@@ -235,17 +267,23 @@ def downscale_image(image: Image.Image, max_width: int = 800) -> Image.Image:
     height = int(image.height * scale)
     return image.resize((max_width, height), Image.LANCZOS)
 
-def preprocess_id_image(image: Image.Image) -> Image.Image:
+def preprocess_id_image(image: Image.Image, fast: bool) -> Image.Image:
     gray = ImageOps.grayscale(image)
     gray = ImageOps.autocontrast(gray)
+    if fast:
+        return gray
+    gray = gray.filter(ImageFilter.MedianFilter(size=3))
+    gray = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+    gray = gray.point(lambda x: 0 if x < 160 else 255, mode="1")
     return gray
 
-def generate_image_variants(image: Image.Image) -> list[Image.Image]:
+def generate_image_variants(image: Image.Image, fast: bool) -> list[Image.Image]:
     variants = []
-    for angle in (0, 180):
+    angles = (0, 180) if fast else (0, 90, 180, 270)
+    for angle in angles:
         rotated = image.rotate(angle, expand=True)
         variants.append(rotated)
-        variants.append(preprocess_id_image(rotated))
+        variants.append(preprocess_id_image(rotated, fast=fast))
     return variants
 
 def normalize_ocr_text(text: str) -> str:
@@ -433,10 +471,10 @@ def register_session_endpoint(
         if not STUDENT_ID_PATTERN.match(student_id.strip()):
             raise HTTPException(status_code=400, detail="Invalid student ID format")
 
-        extracted_id = extract_id_from_image(id_image)
+        extracted_id, matched = extract_id_match(id_image, student_id)
         if not extracted_id:
             raise HTTPException(status_code=400, detail="University ID not found in image")
-        if extracted_id.lower() != student_id.strip().lower():
+        if not matched:
             raise HTTPException(status_code=400, detail="Student ID does not match uploaded ID")
 
         existing_session = crud.get_active_session_by_student(db, current_user.id)
@@ -639,10 +677,10 @@ def register_schedule(
             raise HTTPException(status_code=400, detail="Invalid student ID format")
 
         if id_image is not None:
-            extracted_id = extract_id_from_image(id_image)
+            extracted_id, matched = extract_id_match(id_image, student_id)
             if not extracted_id:
                 raise HTTPException(status_code=400, detail="University ID not found in image")
-            if extracted_id.lower() != student_id.strip().lower():
+            if not matched:
                 raise HTTPException(status_code=400, detail="Student ID does not match uploaded ID")
 
         desktop = crud.get_desktop(db, desktop_id)
