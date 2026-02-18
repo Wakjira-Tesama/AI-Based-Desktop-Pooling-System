@@ -13,10 +13,26 @@ def seed() -> None:
     student_email = os.getenv("SEED_STUDENT_EMAIL", "student@test.com")
     student_password = os.getenv("SEED_STUDENT_PASSWORD", "password123")
 
-    admin_id = os.getenv("SEED_ADMIN_ID", "MGR001")
-    admin_name = os.getenv("SEED_ADMIN_NAME", "Library Manager")
-    admin_email = os.getenv("SEED_ADMIN_EMAIL", "manager@test.com")
-    admin_password = os.getenv("SEED_ADMIN_PASSWORD", "admin123")
+    admin_accounts = [
+        {
+            "id": os.getenv("SEED_ADMIN_1_ID", "MGR001"),
+            "name": os.getenv("SEED_ADMIN_1_NAME", "Library Manager"),
+            "email": os.getenv("SEED_ADMIN_1_EMAIL", "admin1@astu.local"),
+            "password": os.getenv("SEED_ADMIN_1_PASSWORD", "AdminOne@2026"),
+        },
+        {
+            "id": os.getenv("SEED_ADMIN_2_ID", "MGR002"),
+            "name": os.getenv("SEED_ADMIN_2_NAME", "Library Admin"),
+            "email": os.getenv("SEED_ADMIN_2_EMAIL", "admin2@astu.local"),
+            "password": os.getenv("SEED_ADMIN_2_PASSWORD", "AdminTwo@2026"),
+        },
+        {
+            "id": os.getenv("SEED_ADMIN_3_ID", "MGR003"),
+            "name": os.getenv("SEED_ADMIN_3_NAME", "System Admin"),
+            "email": os.getenv("SEED_ADMIN_3_EMAIL", "admin3@astu.local"),
+            "password": os.getenv("SEED_ADMIN_3_PASSWORD", "AdminThree@2026"),
+        },
+    ]
 
     db = SessionLocal()
 
@@ -40,29 +56,29 @@ def seed() -> None:
         else:
             print(f"Student already exists: {student_existing.email}")
 
-        # Create manager account (with is_admin = True)
-        manager_data = schemas.StudentCreate(
-            student_id=admin_id,
-            name=admin_name,
-            email=admin_email,
-            password=admin_password,
-        )
-
-        manager_created = False
-        manager_existing_by_email = crud.get_student_by_email(db, admin_email)
-        manager_existing_by_id = crud.get_student_by_student_id(db, admin_id)
-        manager_existing = manager_existing_by_id or manager_existing_by_email
-        if not manager_existing:
-            manager = crud.create_student(db, manager_data)
-            manager_created = True
-            manager.is_admin = True
-            db.commit()
-            print(f"Created manager: {manager.name} ({manager.email}) - ADMIN")
-        else:
-            print(f"Manager already exists: {manager_existing.email}")
-            manager_existing.is_admin = True
-            db.commit()
-            print(f"Updated {manager_existing.email} to admin")
+        # Create admin accounts
+        admin_results = []
+        for admin in admin_accounts:
+            manager_data = schemas.StudentCreate(
+                student_id=admin["id"],
+                name=admin["name"],
+                email=admin["email"],
+                password=admin["password"],
+            )
+            manager_existing_by_email = crud.get_student_by_email(db, admin["email"])
+            manager_existing_by_id = crud.get_student_by_student_id(db, admin["id"])
+            manager_existing = manager_existing_by_id or manager_existing_by_email
+            if not manager_existing:
+                manager = crud.create_student(db, manager_data)
+                manager.is_admin = True
+                db.commit()
+                admin_results.append((admin["email"], admin["password"], True))
+                print(f"Created manager: {manager.name} ({manager.email}) - ADMIN")
+            else:
+                manager_existing.is_admin = True
+                db.commit()
+                admin_results.append((manager_existing.email, None, False))
+                print(f"Manager already exists: {manager_existing.email}")
 
         desktops = [
             {"desktop_id": "LIB-001", "ip_address": "192.168.1.101", "status": "available"},
@@ -85,7 +101,7 @@ def seed() -> None:
                 print(f"Desktop already exists: {desktop_data['desktop_id']}")
 
         student_login = student_email if student_created else student_existing.email
-        manager_login = admin_email if manager_created else manager_existing.email
+        manager_logins = admin_results
 
         print("\n=== SETUP COMPLETE ===")
         print("\nSeed Accounts:")
@@ -94,10 +110,11 @@ def seed() -> None:
         else:
             print(f"  Student: {student_login} (existing account, password unchanged)")
 
-        if manager_created:
-            print(f"  Manager: {manager_login} / {admin_password} (has admin access)")
-        else:
-            print(f"  Manager: {manager_login} (existing account, password unchanged, has admin access)")
+        for email, password, created in manager_logins:
+            if created:
+                print(f"  Manager: {email} / {password} (has admin access)")
+            else:
+                print(f"  Manager: {email} (existing account, password unchanged, has admin access)")
         print("\nDesktops: 5 desktops ensured")
 
     finally:
