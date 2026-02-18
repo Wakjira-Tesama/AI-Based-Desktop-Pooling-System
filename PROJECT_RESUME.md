@@ -12,3 +12,10 @@ The AI-Based Desktop Pooling System (SDPMS) is a FastAPI + React application for
 - Keep booking and session workflows simple and auditable.
 
 ## 3) Actors
+
+- Student
+- Admin/Librarian
+- Desktop Agent (heartbeat sender)
+
+## 4) System Architecture (High-Level)
+
