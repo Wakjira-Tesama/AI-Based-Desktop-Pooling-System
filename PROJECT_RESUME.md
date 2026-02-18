@@ -33,3 +33,10 @@ graph LR
 
 ```mermaid
 graph TD
+  Student((Student)) --> UC1[Register account with ID OCR]
+  Student --> UC2[Login (student)]
+  Student --> UC3[Pair device to desktop]
+  Student --> UC4[Book a time slot]
+  Student --> UC5[Start desktop session]
+  Student --> UC6[End session]
+  Student --> UC7[Report issue]
