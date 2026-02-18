@@ -26,3 +26,10 @@ graph LR
   FE -->|REST + JWT| API[FastAPI API]
   API --> DB[(SQL DB: SQLite or Postgres)]
   Agent[Desktop Agent] -->|Heartbeat| API
+  API --> OCR[OCR Engine (Tesseract)]
+```
+
+## 5) Core Use Cases
+
+```mermaid
+graph TD
