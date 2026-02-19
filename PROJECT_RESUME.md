@@ -281,3 +281,9 @@ sequenceDiagram
 
   S->>FE: Submit issue report
   FE->>API: POST /issues/report
+  API->>DB: Verify booking exists for student
+  alt No matching booking
+    DB-->>API: Not found or mismatch
+    API-->>FE: 403 Not authorized
+  else Booking valid
+    API->>DB: Create issue report
