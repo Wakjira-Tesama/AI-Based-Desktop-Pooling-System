@@ -221,3 +221,9 @@ sequenceDiagram
 ```
 
 ### 9.4 Admin Management (Status + End Session)
+
+```mermaid
+sequenceDiagram
+  participant A as Admin
+  participant FE as Frontend
+  participant API as FastAPI
