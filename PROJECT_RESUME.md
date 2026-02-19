@@ -68,3 +68,10 @@ erDiagram
   DESKTOPS ||--o{ HEALTH_LOGS : reports
   DESKTOPS ||--o{ DESKTOP_PAIRINGS : pairs
   DESKTOPS ||--o{ SCHEDULE_ENTRIES : schedules
+  STUDENTS ||--o{ ISSUE_REPORTS : submits
+  DESKTOPS ||--o{ ISSUE_REPORTS : affected_by
+
+  STUDENTS {
+    int id
+    string student_id
+    string name
