@@ -299,3 +299,9 @@ sequenceDiagram
 - Student endpoints check ownership of sessions and bookings.
 - Desktop pairing enforces device-level trust for session start.
 
+## 11) Deployment Notes
+
+- Backend supports SQLite (default) and Postgres via `DATABASE_URL`.
+- CORS is configurable via `CORS_ORIGINS`.
+- OCR requires Tesseract installed or `TESSERACT_CMD` set.
+- Frontend uses Vite; API URL via `VITE_API_URL`.
