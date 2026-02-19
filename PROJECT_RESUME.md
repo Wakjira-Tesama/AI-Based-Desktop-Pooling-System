@@ -54,3 +54,10 @@ graph TD
 
 - Student: id, student_id, name, email, hashed_password, is_admin
 - Desktop: id, desktop_id, ip_address, mac_address, status, last_heartbeat
+- Session: id, student_id, desktop_id, start_time, end_time, is_active, duration_minutes
+- DesktopPairing: device_uuid, desktop_id, paired_at
+- ScheduleEntry: desktop_id, date, start_time, end_time, student_id, mark
+- IssueReport: desktop_id, student_id, date, time range, category, description, status
+
+### 6.1 ER Diagram (Mermaid)
+
