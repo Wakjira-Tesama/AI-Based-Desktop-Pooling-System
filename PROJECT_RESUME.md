@@ -124,3 +124,10 @@ erDiagram
     string student_id
     string mark
     datetime updated_at
+  }
+
+  ISSUE_REPORTS {
+    int id
+    int student_id
+    int desktop_id
+    date date
