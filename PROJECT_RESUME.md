@@ -152,3 +152,10 @@ erDiagram
   - Match against expected `ugr/NNNNN/NN` format.
 
 ## 8) Key API Capabilities
+
+- Auth: `/token`, `/students/login`, `/me`
+- Student: `/students/`, `/students/verify-id`
+- Desktops: `/desktops/`, `/desktops/overview`, `/desktops/{id}/status`
+- Sessions: `/sessions/start`, `/sessions/me`, `/sessions/active`, `/sessions/{id}/end`
+- Pairing: `/pairings/register`
+- Schedule: `/schedule`, `/schedule/register`, `/schedule/entry`
