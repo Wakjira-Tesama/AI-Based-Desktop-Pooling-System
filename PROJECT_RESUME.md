@@ -201,3 +201,10 @@ sequenceDiagram
   FE->>API: POST /schedule/register
   API->>DB: Check conflicts + save booking
   DB-->>API: Booking saved
+  API-->>FE: Booking confirmation
+```
+
+### 9.3 Start Session (Device Pairing Required)
+
+```mermaid
+sequenceDiagram
