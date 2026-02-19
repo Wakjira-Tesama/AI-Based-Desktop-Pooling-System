@@ -239,3 +239,9 @@ sequenceDiagram
   FE->>API: POST /sessions/{id}/end
   API->>DB: End session + set desktop available
   DB-->>API: Session ended
+  API-->>FE: Success
+```
+
+### 9.5 Schedule Booking with Conflict Handling
+
+```mermaid
