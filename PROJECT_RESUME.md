@@ -269,3 +269,9 @@ sequenceDiagram
     API-->>FE: Booking confirmation
   end
 ```
+
+### 9.6 Issue Reporting (Authorized Booking)
+
+```mermaid
+sequenceDiagram
+  participant S as Student
