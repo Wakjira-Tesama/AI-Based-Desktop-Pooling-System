@@ -117,3 +117,10 @@ erDiagram
 
   SCHEDULE_ENTRIES {
     int id
+    int desktop_id
+    date date
+    string start_time
+    string end_time
+    string student_id
+    string mark
+    datetime updated_at
