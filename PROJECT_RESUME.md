@@ -89,3 +89,10 @@ erDiagram
     datetime last_heartbeat
   }
 
+  SESSIONS {
+    int id
+    int student_id
+    int desktop_id
+    datetime start_time
+    datetime end_time
+    bool is_active
