@@ -227,3 +227,9 @@ sequenceDiagram
   participant A as Admin
   participant FE as Frontend
   participant API as FastAPI
+  participant DB as Database
+
+  A->>FE: Update desktop status
+  FE->>API: PATCH /desktops/{id}/status
+  API->>DB: Update status
+  DB-->>API: Updated desktop
