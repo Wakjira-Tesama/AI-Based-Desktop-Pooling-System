@@ -245,3 +245,9 @@ sequenceDiagram
 ### 9.5 Schedule Booking with Conflict Handling
 
 ```mermaid
+sequenceDiagram
+  participant S as Student
+  participant FE as Frontend
+  participant API as FastAPI
+  participant DB as Database
+
