@@ -173,3 +173,10 @@ sequenceDiagram
   participant FE as Frontend
   participant API as FastAPI
   participant OCR as Tesseract OCR
+  participant DB as Database
+
+  S->>FE: Fill registration form + upload/capture ID
+  FE->>API: POST /students/verify-id (image + student_id)
+  API->>OCR: Extract and match student_id
+  OCR-->>API: extracted_id + match result
+  API-->>FE: Verification result
