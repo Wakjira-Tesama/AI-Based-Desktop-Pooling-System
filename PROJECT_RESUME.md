@@ -82,3 +82,10 @@ erDiagram
 
   DESKTOPS {
     int id
+    string desktop_id
+    string ip_address
+    string mac_address
+    string status
+    datetime last_heartbeat
+  }
+
