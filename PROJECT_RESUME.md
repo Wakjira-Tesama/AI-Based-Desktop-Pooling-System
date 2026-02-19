@@ -305,3 +305,9 @@ sequenceDiagram
 - CORS is configurable via `CORS_ORIGINS`.
 - OCR requires Tesseract installed or `TESSERACT_CMD` set.
 - Frontend uses Vite; API URL via `VITE_API_URL`.
+
+## 12) Current Scope and Limitations
+
+- AI/ML is limited to OCR verification; no predictive allocation model.
+- Scheduling is daily and time-slot based.
+- Desktop agent only reports heartbeat status (no full telemetry upload).
