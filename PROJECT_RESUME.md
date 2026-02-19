@@ -40,3 +40,10 @@ graph TD
   Student --> UC5[Start desktop session]
   Student --> UC6[End session]
   Student --> UC7[Report issue]
+
+  Admin((Admin)) --> UA1[Login (admin)]
+  Admin --> UA2[Manage desktops]
+  Admin --> UA3[Monitor sessions]
+  Admin --> UA4[View issue reports]
+  Admin --> UA5[View analytics]
+
