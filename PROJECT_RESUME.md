@@ -208,3 +208,10 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+  participant S as Student
+  participant FE as Frontend
+  participant API as FastAPI
+  participant DB as Database
+
+  S->>FE: Start session
+  FE->>API: POST /sessions/start (X-Device-Id)
