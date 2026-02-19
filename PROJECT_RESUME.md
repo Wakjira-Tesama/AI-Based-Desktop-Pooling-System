@@ -180,3 +180,10 @@ sequenceDiagram
   API->>OCR: Extract and match student_id
   OCR-->>API: extracted_id + match result
   API-->>FE: Verification result
+  FE->>API: POST /students/ (form + image)
+  API->>DB: Create student
+  DB-->>API: Student record
+  API-->>FE: Student created
+  FE->>API: POST /students/login
+  API-->>FE: JWT token
+```
