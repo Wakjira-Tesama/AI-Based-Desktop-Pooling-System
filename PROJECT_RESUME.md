@@ -47,3 +47,10 @@ graph TD
   Admin --> UA4[View issue reports]
   Admin --> UA5[View analytics]
 
+  Agent((Desktop Agent)) --> UH1[Send heartbeat]
+```
+
+## 6) Main Data Model
+
+- Student: id, student_id, name, email, hashed_password, is_admin
+- Desktop: id, desktop_id, ip_address, mac_address, status, last_heartbeat
