@@ -287,3 +287,9 @@ sequenceDiagram
     API-->>FE: 403 Not authorized
   else Booking valid
     API->>DB: Create issue report
+    DB-->>API: Report saved
+    API-->>FE: Issue report created
+  end
+```
+
+## 10) Security and Access Control
