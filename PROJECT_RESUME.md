@@ -110,3 +110,10 @@ erDiagram
 
   DESKTOP_PAIRINGS {
     int id
+    string device_uuid
+    int desktop_id
+    datetime paired_at
+  }
+
+  SCHEDULE_ENTRIES {
+    int id
