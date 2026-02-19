@@ -263,3 +263,9 @@ sequenceDiagram
   else Overlapping booking
     DB-->>API: Conflict
     API-->>FE: 409 Overlapping time slot
+  else Slot available
+    API->>DB: Save schedule entry
+    DB-->>API: Entry saved
+    API-->>FE: Booking confirmation
+  end
+```
