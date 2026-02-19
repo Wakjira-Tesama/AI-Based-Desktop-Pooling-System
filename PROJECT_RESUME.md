@@ -187,3 +187,10 @@ sequenceDiagram
   FE->>API: POST /students/login
   API-->>FE: JWT token
 ```
+
+### 9.2 Schedule Booking (Student)
+
+```mermaid
+sequenceDiagram
+  participant S as Student
+  participant FE as Frontend
