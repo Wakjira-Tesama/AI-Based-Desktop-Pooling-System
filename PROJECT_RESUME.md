@@ -233,3 +233,9 @@ sequenceDiagram
   FE->>API: PATCH /desktops/{id}/status
   API->>DB: Update status
   DB-->>API: Updated desktop
+  API-->>FE: Success
+
+  A->>FE: End a student session
+  FE->>API: POST /sessions/{id}/end
+  API->>DB: End session + set desktop available
+  DB-->>API: Session ended
