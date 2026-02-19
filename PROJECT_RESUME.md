@@ -61,3 +61,10 @@ graph TD
 
 ### 6.1 ER Diagram (Mermaid)
 
+```mermaid
+erDiagram
+  STUDENTS ||--o{ SESSIONS : has
+  DESKTOPS ||--o{ SESSIONS : hosts
+  DESKTOPS ||--o{ HEALTH_LOGS : reports
+  DESKTOPS ||--o{ DESKTOP_PAIRINGS : pairs
+  DESKTOPS ||--o{ SCHEDULE_ENTRIES : schedules
