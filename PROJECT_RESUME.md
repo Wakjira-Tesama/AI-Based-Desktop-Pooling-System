@@ -75,3 +75,10 @@ erDiagram
     int id
     string student_id
     string name
+    string email
+    string hashed_password
+    bool is_admin
+  }
+
+  DESKTOPS {
+    int id
