@@ -194,3 +194,10 @@ sequenceDiagram
 sequenceDiagram
   participant S as Student
   participant FE as Frontend
+  participant API as FastAPI
+  participant DB as Database
+
+  S->>FE: Select desktop + time slot
+  FE->>API: POST /schedule/register
+  API->>DB: Check conflicts + save booking
+  DB-->>API: Booking saved
