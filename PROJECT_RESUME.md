@@ -145,3 +145,10 @@ erDiagram
 - Purpose: Confirm the student ID on an uploaded or camera-captured university ID.
 - Engine: Tesseract OCR via `pytesseract`.
 - Flow:
+  - Normalize image orientation.
+  - Preprocess (grayscale, contrast, median filter, thresholding).
+  - Run OCR with whitelist (`UGRugr0123456789/`).
+  - Normalize and extract candidate IDs using a regex pattern.
+  - Match against expected `ugr/NNNNN/NN` format.
+
+## 8) Key API Capabilities
