@@ -96,3 +96,10 @@ erDiagram
     datetime start_time
     datetime end_time
     bool is_active
+    int duration_minutes
+  }
+
+  HEALTH_LOGS {
+    int id
+    int desktop_id
+    datetime timestamp
