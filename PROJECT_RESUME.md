@@ -293,3 +293,9 @@ sequenceDiagram
 ```
 
 ## 10) Security and Access Control
+
+- JWT-based auth for both student and admin sessions.
+- Admin-only endpoints guarded by `is_admin`.
+- Student endpoints check ownership of sessions and bookings.
+- Desktop pairing enforces device-level trust for session start.
+
