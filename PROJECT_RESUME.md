@@ -215,3 +215,9 @@ sequenceDiagram
 
   S->>FE: Start session
   FE->>API: POST /sessions/start (X-Device-Id)
+  API->>DB: Validate pairing + availability
+  DB-->>API: Session created + desktop busy
+  API-->>FE: Session details
+```
+
+### 9.4 Admin Management (Status + End Session)
