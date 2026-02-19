@@ -131,3 +131,10 @@ erDiagram
     int student_id
     int desktop_id
     date date
+    string start_time
+    string end_time
+    string category
+    string description
+    string status
+    datetime created_at
+  }
