@@ -275,3 +275,9 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant S as Student
+  participant FE as Frontend
+  participant API as FastAPI
+  participant DB as Database
+
+  S->>FE: Submit issue report
+  FE->>API: POST /issues/report
