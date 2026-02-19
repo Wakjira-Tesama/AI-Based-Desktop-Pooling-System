@@ -159,3 +159,10 @@ erDiagram
 - Sessions: `/sessions/start`, `/sessions/me`, `/sessions/active`, `/sessions/{id}/end`
 - Pairing: `/pairings/register`
 - Schedule: `/schedule`, `/schedule/register`, `/schedule/entry`
+- Issues: `/issues/report`, `/issues`
+- Analytics: `/analytics/stats`
+- Agent heartbeat: `/agent/heartbeat`
+
+## 9) Sequence Diagrams (High-Level)
+
+### 9.1 Student Registration with OCR
