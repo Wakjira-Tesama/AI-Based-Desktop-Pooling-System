@@ -138,3 +138,10 @@ erDiagram
     string status
     datetime created_at
   }
+```
+
+## 7) AI/ML Component (OCR Verification)
+
+- Purpose: Confirm the student ID on an uploaded or camera-captured university ID.
+- Engine: Tesseract OCR via `pytesseract`.
+- Flow:
