@@ -166,3 +166,10 @@ erDiagram
 ## 9) Sequence Diagrams (High-Level)
 
 ### 9.1 Student Registration with OCR
+
+```mermaid
+sequenceDiagram
+  participant S as Student
+  participant FE as Frontend
+  participant API as FastAPI
+  participant OCR as Tesseract OCR
