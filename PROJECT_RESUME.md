@@ -251,3 +251,9 @@ sequenceDiagram
   participant API as FastAPI
   participant DB as Database
 
+  S->>FE: Choose desktop + time slot
+  FE->>API: POST /schedule/register
+  API->>DB: Check time slot availability
+  alt Slot already booked by another student
+    DB-->>API: Conflict
+    API-->>FE: 409 Time slot already booked
