@@ -103,3 +103,10 @@ erDiagram
     int id
     int desktop_id
     datetime timestamp
+    float cpu_usage
+    float ram_usage
+    string network_status
+  }
+
+  DESKTOP_PAIRINGS {
+    int id
