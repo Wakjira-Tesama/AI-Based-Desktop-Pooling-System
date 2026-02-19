@@ -257,3 +257,9 @@ sequenceDiagram
   alt Slot already booked by another student
     DB-->>API: Conflict
     API-->>FE: 409 Time slot already booked
+  else Student already has booking that day
+    DB-->>API: Conflict
+    API-->>FE: 409 Already have a booking
+  else Overlapping booking
+    DB-->>API: Conflict
+    API-->>FE: 409 Overlapping time slot
