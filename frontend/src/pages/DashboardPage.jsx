@@ -300,6 +300,23 @@ export default function DashboardPage() {
     navigate("/");
   };
 
+  const studentIdLower = user?.student_id?.toLowerCase();
+  const bookingEntry = scheduleEntries.find(
+    (entry) => (entry.student_id || "").toLowerCase() === studentIdLower,
+  );
+
+  useEffect(() => {
+    if (!bookingEntry) return;
+    if (!isEntryExpired(bookingEntry)) return;
+    const entryKey = `${bookingEntry.desktop_id}-${bookingEntry.date}-${bookingEntry.start_time}-${bookingEntry.end_time}`;
+    if (entryKey === lastEndedKey) return;
+    showNotice(
+      "Your time is ended please register on available desktop",
+      "error",
+    );
+    setLastEndedKey(entryKey);
+  }, [bookingEntry, lastEndedKey, currentTime]);
+
   if (loading) {
     return (
       <div className="astu-shell flex items-center justify-center">
@@ -340,22 +357,6 @@ export default function DashboardPage() {
   const offlineCount = desktops.filter(
     (desktop) => desktop.status === "offline",
   ).length;
-  const studentIdLower = user?.student_id?.toLowerCase();
-  const bookingEntry = scheduleEntries.find(
-    (entry) => (entry.student_id || "").toLowerCase() === studentIdLower,
-  );
-
-  useEffect(() => {
-    if (!bookingEntry) return;
-    if (!isEntryExpired(bookingEntry)) return;
-    const entryKey = `${bookingEntry.desktop_id}-${bookingEntry.date}-${bookingEntry.start_time}-${bookingEntry.end_time}`;
-    if (entryKey === lastEndedKey) return;
-    showNotice(
-      "Your time is ended please register on available desktop",
-      "error",
-    );
-    setLastEndedKey(entryKey);
-  }, [bookingEntry, lastEndedKey, currentTime]);
 
   return (
     <div className="astu-shell text-white">
