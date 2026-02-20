@@ -24,6 +24,7 @@ const TIME_SLOTS = [
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [stats, setStats] = useState(null);
   const [desktops, setDesktops] = useState([]);
   const [activeSessions, setActiveSessions] = useState([]);
@@ -94,6 +95,11 @@ export default function AdminDashboard() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  useEffect(() => {
+    const clock = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(clock);
+  }, []);
 
   const handleAddDesktop = async (e) => {
     e.preventDefault();
@@ -225,6 +231,12 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-400">
+                {currentTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
               <span className="text-sm text-gray-400">{user?.name}</span>
               <button
                 onClick={handleLogout}

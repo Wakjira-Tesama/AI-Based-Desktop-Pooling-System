@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [scheduleEntries, setScheduleEntries] = useState([]);
   const [user, setUser] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [startingSession, setStartingSession] = useState(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [noticeMessage, setNoticeMessage] = useState("");
   const [noticeType, setNoticeType] = useState("success");
+  const [lastEndedKey, setLastEndedKey] = useState("");
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [pendingCancelEntry, setPendingCancelEntry] = useState(null);
   const navigate = useNavigate();
@@ -81,6 +83,11 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchData, navigate]);
 
+  useEffect(() => {
+    const clock = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(clock);
+  }, []);
+
   const closeRegisterModal = () => {
     setShowRegisterModal(false);
     setSelectedDesktop(null);
@@ -120,6 +127,22 @@ export default function DashboardPage() {
     return hours * 60 + minutes;
   };
 
+  const isSlotExpired = (slot) => {
+    if (!slot?.end) return false;
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    return nowMinutes > timeToMinutes(slot.end);
+  };
+
+  const isEntryExpired = (entry) => {
+    if (!entry?.date || !entry?.end_time) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    if (entry.date < today) return true;
+    if (entry.date > today) return false;
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    return nowMinutes >= timeToMinutes(entry.end_time);
+  };
+
   const timesOverlap = (startA, endA, startB, endB) => {
     return timeToMinutes(startA) < timeToMinutes(endB)
       ? timeToMinutes(startB) < timeToMinutes(endA)
@@ -130,7 +153,9 @@ export default function DashboardPage() {
     const studentId = user?.student_id?.toLowerCase();
     if (!studentId) return;
     const hasBooking = scheduleEntries.some(
-      (entry) => (entry.student_id || "").toLowerCase() === studentId,
+      (entry) =>
+        !isEntryExpired(entry) &&
+        (entry.student_id || "").toLowerCase() === studentId,
     );
     const isSameSlotBooked = scheduleEntries.some(
       (entry) =>
@@ -147,6 +172,7 @@ export default function DashboardPage() {
       return;
     }
     const hasOverlap = scheduleEntries.some((entry) => {
+      if (isEntryExpired(entry)) return false;
       if ((entry.student_id || "").toLowerCase() !== studentId) return false;
       if (
         entry.desktop_id === desktop.id &&
@@ -319,6 +345,18 @@ export default function DashboardPage() {
     (entry) => (entry.student_id || "").toLowerCase() === studentIdLower,
   );
 
+  useEffect(() => {
+    if (!bookingEntry) return;
+    if (!isEntryExpired(bookingEntry)) return;
+    const entryKey = `${bookingEntry.desktop_id}-${bookingEntry.date}-${bookingEntry.start_time}-${bookingEntry.end_time}`;
+    if (entryKey === lastEndedKey) return;
+    showNotice(
+      "Your time is ended please register on available desktop",
+      "error",
+    );
+    setLastEndedKey(entryKey);
+  }, [bookingEntry, lastEndedKey, currentTime]);
+
   return (
     <div className="astu-shell text-white">
       <header className="astu-content bg-gray-800/80 shadow border-b border-gray-700">
@@ -343,6 +381,12 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-400">
+                {currentTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
               <div className="flex items-center gap-2 text-gray-300">
                 <UserCircleIcon className="h-6 w-6" />
                 <span className="text-sm font-medium">{user?.name}</span>
@@ -485,7 +529,8 @@ export default function DashboardPage() {
                           const isAvailable =
                             desktop.status === "available" && !isBooked;
                           const canCancel = isMine;
-                          const canRegister = isAvailable;
+                          const canRegister =
+                            isAvailable && !isSlotExpired(slot);
                           const isProcessing =
                             startingSession === desktop.id &&
                             (canCancel || canRegister);

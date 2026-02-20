@@ -568,6 +568,27 @@ def _ensure_time_order(start_value: str, end_value: str) -> None:
 def _times_overlap(start_a, end_a, start_b, end_b) -> bool:
     return start_a < end_b and start_b < end_a
 
+def _assert_slot_not_expired(entry_date: date, end_time_value: str) -> None:
+    today = date.today()
+    if entry_date < today:
+        raise HTTPException(status_code=409, detail="Time slot already ended")
+    if entry_date > today:
+        return
+    end_time = _parse_time_string(end_time_value)
+    now_time = datetime.now().time()
+    if now_time > end_time:
+        raise HTTPException(status_code=409, detail="Time slot already ended")
+
+def _is_schedule_entry_expired(entry_date: date, end_time_value: str) -> bool:
+    today = date.today()
+    if entry_date < today:
+        return True
+    if entry_date > today:
+        return False
+    end_time = _parse_time_string(end_time_value)
+    now_time = datetime.now().time()
+    return now_time >= end_time
+
 def _assert_schedule_slot_available(
     db: Session,
     desktop_id: int,
@@ -584,6 +605,8 @@ def _assert_schedule_slot_available(
 
     entries = crud.get_student_schedule_entries_for_day(db, day, student_id)
     for entry in entries:
+        if _is_schedule_entry_expired(entry.date, entry.end_time):
+            continue
         if (
             entry.desktop_id == desktop_id
             and entry.start_time == start_time
@@ -597,6 +620,8 @@ def _assert_schedule_slot_available(
     start_candidate = _parse_time_string(start_time)
     end_candidate = _parse_time_string(end_time)
     for entry in entries:
+        if _is_schedule_entry_expired(entry.date, entry.end_time):
+            continue
         if (
             entry.desktop_id == desktop_id
             and entry.start_time == start_time
@@ -634,6 +659,8 @@ def upsert_schedule(entry: schemas.ScheduleEntryCreate, db: Session = Depends(ge
         if entry.student_id:
             if (not current_user.is_admin) and entry.student_id.strip().lower() != current_user.student_id.strip().lower():
                 raise HTTPException(status_code=403, detail="Not authorized to book for another student")
+            if not current_user.is_admin:
+                _assert_slot_not_expired(entry.date, entry.end_time)
             _assert_schedule_slot_available(
                 db,
                 entry.desktop_id,
@@ -686,6 +713,8 @@ def register_schedule(
         desktop = crud.get_desktop(db, desktop_id)
         if not desktop:
             raise HTTPException(status_code=404, detail="Desktop not found")
+
+        _assert_slot_not_expired(date_value, end_time)
 
         _assert_schedule_slot_available(
             db,
