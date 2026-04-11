@@ -12,6 +12,7 @@ class Student(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
+    library = Column(String, nullable=True)
     
     sessions = relationship("Session", back_populates="student")
 
@@ -23,6 +24,7 @@ class Desktop(Base):
     ip_address = Column(String)
     mac_address = Column(String, nullable=True)
     status = Column(String, default="offline") # offline, available, busy, maintenance
+    library = Column(String, default="central") # central, applied
     last_heartbeat = Column(DateTime, default=datetime.utcnow)
     
     sessions = relationship("Session", back_populates="desktop")

@@ -29,7 +29,8 @@ def create_student(db: Session, student: schemas.StudentCreate):
         student_id=student.student_id, 
         name=student.name, 
         email=student.email, 
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        library=student.library
     )
     db.add(db_student)
     db.commit()
@@ -37,12 +38,15 @@ def create_student(db: Session, student: schemas.StudentCreate):
     return db_student
 
 # Desktop CRUD
-def get_desktops(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Desktop).offset(skip).limit(limit).all()
+def get_desktops(db: Session, skip: int = 0, limit: int = 100, library: str = None):
+    query = db.query(models.Desktop)
+    if library:
+        query = query.filter(models.Desktop.library == library)
+    return query.offset(skip).limit(limit).all()
 
-def get_desktop_overview(db: Session, skip: int = 0, limit: int = 100):
-    desktops = get_desktops(db, skip=skip, limit=limit)
-    active_sessions = get_active_sessions(db)
+def get_desktop_overview(db: Session, skip: int = 0, limit: int = 100, library: str = None):
+    desktops = get_desktops(db, skip=skip, limit=limit, library=library)
+    active_sessions = get_active_sessions(db, library=library)
     active_by_desktop = {session.desktop_id: session for session in active_sessions}
     now = datetime.utcnow()
     overview = []
@@ -58,7 +62,7 @@ def get_desktop_overview(db: Session, skip: int = 0, limit: int = 100):
             busy_until = session.start_time + timedelta(minutes=duration)
             remaining_seconds = max(0, (busy_until - now).total_seconds())
             busy_remaining = int((remaining_seconds + 59) // 60)
-        elif desktop.status == "available":
+        elif desktop.status == "available" and desktop.last_heartbeat:
             available_since = desktop.last_heartbeat
 
         overview.append(
@@ -67,6 +71,7 @@ def get_desktop_overview(db: Session, skip: int = 0, limit: int = 100):
                 "desktop_id": desktop.desktop_id,
                 "ip_address": desktop.ip_address,
                 "status": desktop.status,
+                "library": desktop.library,
                 "last_heartbeat": desktop.last_heartbeat,
                 "busy_until": busy_until,
                 "busy_remaining_minutes": busy_remaining,
@@ -139,8 +144,11 @@ def get_active_session_by_student(db: Session, student_id: int):
         return None
     return session
 
-def get_active_sessions(db: Session):
-    sessions = db.query(models.Session).filter(models.Session.is_active == True).all()
+def get_active_sessions(db: Session, library: str = None):
+    query = db.query(models.Session).filter(models.Session.is_active == True)
+    if library:
+        query = query.join(models.Desktop).filter(models.Desktop.library == library)
+    sessions = query.all()
     active = []
     for session in sessions:
         if _is_session_expired(session):
@@ -173,17 +181,24 @@ def get_session(db: Session, session_id: int):
     return db.query(models.Session).filter(models.Session.id == session_id).first()
 
 # Analytics
-def get_session_count(db: Session):
-    return db.query(models.Session).count()
+def get_session_count(db: Session, library: str = None):
+    query = db.query(models.Session)
+    if library:
+        query = query.join(models.Desktop).filter(models.Desktop.library == library)
+    return query.count()
 
-def get_active_session_count(db: Session):
-    return len(get_active_sessions(db))
+def get_active_session_count(db: Session, library: str = None):
+    return len(get_active_sessions(db, library=library))
 
-def get_desktop_stats(db: Session):
-    total = db.query(models.Desktop).count()
-    available = db.query(models.Desktop).filter(models.Desktop.status == "available").count()
-    busy = db.query(models.Desktop).filter(models.Desktop.status == "busy").count()
-    offline = db.query(models.Desktop).filter(models.Desktop.status == "offline").count()
+def get_desktop_stats(db: Session, library: str = None):
+    query = db.query(models.Desktop)
+    if library:
+        query = query.filter(models.Desktop.library == library)
+        
+    total = query.count()
+    available = query.filter(models.Desktop.status == "available").count()
+    busy = query.filter(models.Desktop.status == "busy").count()
+    offline = query.filter(models.Desktop.status == "offline").count()
     return {"total": total, "available": available, "busy": busy, "offline": offline}
 
 # Desktop Pairing
@@ -206,8 +221,11 @@ def upsert_pairing(db: Session, device_uuid: str, desktop_id: int):
     return pairing
 
 # Schedule CRUD
-def get_schedule_entries(db: Session, day: date):
-    return db.query(models.ScheduleEntry).filter(models.ScheduleEntry.date == day).all()
+def get_schedule_entries(db: Session, day: date, library: str = None):
+    query = db.query(models.ScheduleEntry).filter(models.ScheduleEntry.date == day)
+    if library:
+        query = query.join(models.Desktop).filter(models.Desktop.library == library)
+    return query.all()
 
 def get_schedule_entry(
     db: Session,
@@ -302,10 +320,9 @@ def create_issue_report(
     db.refresh(db_report)
     return db_report
 
-def get_issue_reports(db: Session):
-    return (
-        db.query(models.IssueReport)
-        .order_by(models.IssueReport.created_at.desc())
-        .all()
-    )
+def get_issue_reports(db: Session, library: str = None):
+    query = db.query(models.IssueReport)
+    if library:
+        query = query.join(models.Desktop).filter(models.Desktop.library == library)
+    return query.order_by(models.IssueReport.created_at.desc()).all()
 

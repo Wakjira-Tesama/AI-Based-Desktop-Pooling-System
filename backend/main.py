@@ -332,18 +332,25 @@ def read_students(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 # ========== DESKTOP ENDPOINTS ==========
 
 @app.get("/desktops/", response_model=List[schemas.Desktop])
-def read_desktops(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    desktops = crud.get_desktops(db, skip=skip, limit=limit)
+def read_desktops(library: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
+    target_library = current_user.library if current_user.is_admin else library
+    desktops = crud.get_desktops(db, skip=skip, limit=limit, library=target_library)
     return desktops
 
 @app.get("/desktops/overview", response_model=List[schemas.DesktopOverview])
-def read_desktops_overview(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_desktop_overview(db, skip=skip, limit=limit)
+def read_desktops_overview(library: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_desktop_overview(db, skip=skip, limit=limit, library=library)
 
 @app.post("/desktops/", response_model=schemas.Desktop)
 def create_desktop(desktop: schemas.DesktopCreate, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # If library is not provided or is default, but the current admin has a library assigned,
+    # use the admin's library to ensure they can see the desktop they just created.
+    if current_user.library and (not desktop.library or desktop.library == "central"):
+        desktop.library = current_user.library
+
     return _guard_db_operation(
         db,
         "Create desktop",
@@ -406,7 +413,7 @@ def get_my_active_session(db: Session = Depends(get_db), current_user: models.St
 def get_active_sessions(db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
-    return crud.get_active_sessions(db)
+    return crud.get_active_sessions(db, library=current_user.library)
 
 @app.post("/sessions/start", response_model=schemas.Session)
 def start_session_endpoint(
@@ -637,9 +644,11 @@ def _assert_schedule_slot_available(
             )
 
 @app.get("/schedule", response_model=List[schemas.ScheduleEntry])
-def get_schedule(day: date | None = None, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
+def get_schedule(day: date | None = None, library: str | None = None, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
     target_day = day or date.today()
-    return crud.get_schedule_entries(db, target_day)
+    if current_user.is_admin and current_user.library:
+        return crud.get_schedule_entries(db, target_day, library=current_user.library)
+    return crud.get_schedule_entries(db, target_day, library=library)
 
 @app.post("/schedule/entry", response_model=schemas.ScheduleEntry | dict)
 def upsert_schedule(entry: schemas.ScheduleEntryCreate, db: Session = Depends(get_db), current_user: models.Student = Depends(auth.get_current_user)):
@@ -778,7 +787,7 @@ def list_issue_reports(
 ):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
-    return crud.get_issue_reports(db)
+    return crud.get_issue_reports(db, library=current_user.library)
 
 # ========== ANALYTICS ENDPOINTS ==========
 
@@ -787,9 +796,9 @@ def get_stats(db: Session = Depends(get_db), current_user: models.Student = Depe
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    desktop_stats = crud.get_desktop_stats(db)
-    total_sessions = crud.get_session_count(db)
-    active_sessions = crud.get_active_session_count(db)
+    desktop_stats = crud.get_desktop_stats(db, library=current_user.library)
+    total_sessions = crud.get_session_count(db, library=current_user.library)
+    active_sessions = crud.get_active_session_count(db, library=current_user.library)
     
     return {
         "desktops": desktop_stats,

@@ -16,21 +16,17 @@ def seed() -> None:
     admin_accounts = [
         {
             "id": os.getenv("SEED_ADMIN_1_ID", "MGR001"),
-            "name": os.getenv("SEED_ADMIN_1_NAME", "Library Manager"),
-            "email": os.getenv("SEED_ADMIN_1_EMAIL", "admin1@astu.local"),
-            "password": os.getenv("SEED_ADMIN_1_PASSWORD", "AdminOne@2026"),
+            "name": os.getenv("SEED_ADMIN_1_NAME", "Applied Library Manager"),
+            "email": os.getenv("SEED_ADMIN_1_EMAIL", "admin_applied@astu.edu"),
+            "password": os.getenv("SEED_ADMIN_1_PASSWORD", "password123"),
+            "library": "applied"
         },
         {
             "id": os.getenv("SEED_ADMIN_2_ID", "MGR002"),
-            "name": os.getenv("SEED_ADMIN_2_NAME", "Library Admin"),
-            "email": os.getenv("SEED_ADMIN_2_EMAIL", "admin2@astu.local"),
-            "password": os.getenv("SEED_ADMIN_2_PASSWORD", "AdminTwo@2026"),
-        },
-        {
-            "id": os.getenv("SEED_ADMIN_3_ID", "MGR003"),
-            "name": os.getenv("SEED_ADMIN_3_NAME", "System Admin"),
-            "email": os.getenv("SEED_ADMIN_3_EMAIL", "admin3@astu.local"),
-            "password": os.getenv("SEED_ADMIN_3_PASSWORD", "AdminThree@2026"),
+            "name": os.getenv("SEED_ADMIN_2_NAME", "Central Library Manager"),
+            "email": os.getenv("SEED_ADMIN_2_EMAIL", "admin_central@astu.edu"),
+            "password": os.getenv("SEED_ADMIN_2_PASSWORD", "password123"),
+            "library": "central"
         },
     ]
 
@@ -64,6 +60,7 @@ def seed() -> None:
                 name=admin["name"],
                 email=admin["email"],
                 password=admin["password"],
+                library=admin["library"],
             )
             manager_existing_by_email = crud.get_student_by_email(db, admin["email"])
             manager_existing_by_id = crud.get_student_by_student_id(db, admin["id"])
@@ -81,11 +78,11 @@ def seed() -> None:
                 print(f"Manager already exists: {manager_existing.email}")
 
         desktops = [
-            {"desktop_id": "LIB-001", "ip_address": "192.168.1.101", "status": "available"},
-            {"desktop_id": "LIB-002", "ip_address": "192.168.1.102", "status": "available"},
-            {"desktop_id": "LIB-003", "ip_address": "192.168.1.103", "status": "available"},
-            {"desktop_id": "LIB-004", "ip_address": "192.168.1.104", "status": "offline"},
-            {"desktop_id": "LIB-005", "ip_address": "192.168.1.105", "status": "available"},
+            {"desktop_id": "APL-001", "ip_address": "192.168.2.101", "status": "available", "library": "applied"},
+            {"desktop_id": "APL-002", "ip_address": "192.168.2.102", "status": "available", "library": "applied"},
+            {"desktop_id": "CEN-001", "ip_address": "192.168.1.101", "status": "available", "library": "central"},
+            {"desktop_id": "CEN-002", "ip_address": "192.168.1.102", "status": "offline", "library": "central"},
+            {"desktop_id": "CEN-003", "ip_address": "192.168.1.103", "status": "available", "library": "central"},
         ]
 
         for desktop_data in desktops:

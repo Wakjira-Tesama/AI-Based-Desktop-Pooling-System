@@ -105,24 +105,32 @@ export default function AdminDashboard() {
     e.preventDefault();
     try {
       const ipAddress = getNextIp();
-      await api.post("/desktops/", { ...newDesktop, ip_address: ipAddress });
+      await api.post("/desktops/", { 
+        ...newDesktop, 
+        ip_address: ipAddress,
+        library: user.library || "central" 
+      });
       setShowAddModal(false);
       setNewDesktop({ desktop_id: "", ip_address: "", status: "available" });
       fetchData();
     } catch (err) {
       console.error("Failed to add desktop", err);
+      alert("Failed to add desktop. Make sure the Desktop ID is unique.");
     }
   };
 
   const getNextIp = () => {
-    const base = "192.168.1.";
+    const isApplied = user?.library === "applied";
+    const base = isApplied ? "192.168.2." : "192.168.1.";
+    
     const lastOctets = desktops
       .map((desktop) => desktop.ip_address || "")
       .filter((ip) => ip.startsWith(base))
       .map((ip) => Number(ip.replace(base, "")))
       .filter((value) => Number.isInteger(value) && value > 0 && value < 255);
 
-    const maxOctet = lastOctets.length ? Math.max(...lastOctets) : 99;
+    const startOctet = isApplied ? 100 : 100; // Both start from .101
+    const maxOctet = lastOctets.length ? Math.max(...lastOctets) : startOctet;
     return `${base}${maxOctet + 1}`;
   };
 

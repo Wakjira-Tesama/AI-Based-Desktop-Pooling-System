@@ -7,6 +7,7 @@ class StudentBase(BaseModel):
     student_id: str
     name: str
     email: str
+    library: Optional[str] = None
 
 class StudentCreate(StudentBase):
     password: Optional[str] = None
@@ -27,6 +28,7 @@ class DesktopBase(BaseModel):
     ip_address: str
     mac_address: Optional[str] = None
     status: str = "offline"
+    library: str = "central"
 
 class DesktopCreate(DesktopBase):
     pass

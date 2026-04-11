@@ -8,6 +8,7 @@ export default function RegisterPage() {
     student_id: "",
     name: "",
     email: "",
+    password: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,6 +57,7 @@ export default function RegisterPage() {
       payload.append("student_id", formData.student_id.trim());
       payload.append("name", formData.name.trim());
       payload.append("email", formData.email.trim());
+      payload.append("password", formData.password);
       payload.append("id_image", idFile);
 
       await api.post("/students/", payload, {
@@ -350,6 +352,24 @@ export default function RegisterPage() {
                 className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
                 placeholder="you@example.com"
                 value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
+                placeholder="••••••••"
+                value={formData.password}
                 onChange={handleChange}
               />
             </div>

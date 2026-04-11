@@ -4,8 +4,7 @@ import api from "../api";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
 
 export default function LoginPage({ role }) {
-  const [studentId, setStudentId] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -13,40 +12,38 @@ export default function LoginPage({ role }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-    const formData = new FormData();
-    if (role === "student") {
-      formData.append("student_id", studentId);
-      formData.append("email", email);
-    } else {
-      formData.append("username", email);
-      formData.append("password", password);
-    }
+    const formData = new URLSearchParams();
+    formData.append("username", username);
+    formData.append("password", password);
 
     try {
-      const response = await api.post(
-        role === "student" ? "/students/login" : "/token",
-        formData,
-      );
+      const response = await api.post("/token", formData, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
       localStorage.setItem("token", response.data.access_token);
 
       const me = await api.get("/me");
       const isAdmin = !!me.data?.is_admin;
 
+      // Role check constraint
       if (role === "admin" && !isAdmin) {
         localStorage.removeItem("token");
-        setError("Admin access required. Use student login.");
+        setError("Admin access required. Please use student login instead.");
         return;
       }
-
       if (role === "student" && isAdmin) {
         localStorage.removeItem("token");
-        setError("Student access required. Use admin login.");
+        setError("Administrators should use the admin login page.");
         return;
       }
 
-      navigate(isAdmin ? "/admin" : "/dashboard");
+      if (isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate("/select-library");
+      }
     } catch (err) {
-      setError("Invalid credentials");
+      setError("Invalid credentials. Please check your username and password.");
       console.error(err);
     }
   };
@@ -67,7 +64,7 @@ export default function LoginPage({ role }) {
             <LockClosedIcon className="h-6 w-6" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white astu-title">
-            {role === "admin" ? "Admin sign in" : "Student sign in"}
+            {role === "admin" ? "Admin Sign In" : "Student Sign In"}
           </h2>
           <p className="mt-2 text-center text-sm astu-subtitle">
             Access the Library Desktop Pooling System
@@ -75,77 +72,38 @@ export default function LoginPage({ role }) {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="-space-y-px rounded-md shadow-sm">
-            {role === "student" ? (
-              <>
-                <div>
-                  <label htmlFor="student-id" className="sr-only">
-                    Student ID
-                  </label>
-                  <input
-                    id="student-id"
-                    name="student_id"
-                    type="text"
-                    autoComplete="off"
-                    required
-                    className="relative block w-full rounded-t-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                    placeholder="Student ID"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email-address" className="sr-only">
-                    Email address
-                  </label>
-                  <input
-                    id="email-address"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="relative block w-full rounded-b-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label htmlFor="email-address" className="sr-only">
-                    Email address
-                  </label>
-                  <input
-                    id="email-address"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="relative block w-full rounded-t-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="sr-only">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    className="relative block w-full rounded-b-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
+            <div>
+              <label htmlFor="username" className="sr-only">
+                {role === "admin" ? "Email Address" : "Student ID"}
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                className="relative block w-full rounded-t-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
+                placeholder={role === "admin" ? "Email Address" : "Student ID"}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="relative block w-full rounded-b-md border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
           </div>
 
           {error && (
@@ -169,7 +127,7 @@ export default function LoginPage({ role }) {
             </button>
           </div>
 
-          {role !== "admin" && (
+          {role === "student" && (
             <div className="text-center text-sm">
               <span className="text-gray-400">Don't have an account?</span>{" "}
               <Link
@@ -180,8 +138,29 @@ export default function LoginPage({ role }) {
               </Link>
             </div>
           )}
+          {role === "admin" && (
+             <div className="text-center text-sm">
+              <Link
+                to="/student-login"
+                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Are you a student?
+              </Link>
+            </div>
+          )}
+          {role === "student" && (
+             <div className="text-center text-sm mt-2">
+              <Link
+                to="/admin-login"
+                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Are you an admin?
+              </Link>
+            </div>
+          )}
         </form>
       </div>
     </div>
   );
 }
+

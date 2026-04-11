@@ -49,11 +49,16 @@ export default function DashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
+      const selectedLibrary = localStorage.getItem("selectedLibrary");
+      if (!selectedLibrary) {
+        navigate("/select-library");
+        return;
+      }
       const today = new Date().toISOString().slice(0, 10);
       const [desktopsRes, userRes, scheduleRes] = await Promise.all([
-        api.get("/desktops/overview"),
+        api.get("/desktops/overview", { params: { library: selectedLibrary } }),
         api.get("/me"),
-        api.get("/schedule", { params: { day: today } }),
+        api.get("/schedule", { params: { day: today, library: selectedLibrary } }),
       ]);
       setDesktops(desktopsRes.data);
       setUser(userRes.data);
@@ -373,8 +378,8 @@ export default function DashboardPage() {
                 }}
               />
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white astu-title">
-                  Desktop Pool
+                <h1 className="text-2xl font-bold tracking-tight text-white astu-title capitalize">
+                  {localStorage.getItem("selectedLibrary") || "Library"} Desktop Pool
                 </h1>
                 <p className="text-sm astu-subtitle">
                   Select an available desktop to start your session
