@@ -19,17 +19,20 @@ from PIL import Image, ImageOps, ImageFilter
 import time
 from sqlalchemy.exc import OperationalError
 
-max_retries = 5
+max_retries = 15
 for attempt in range(max_retries):
     try:
         models.Base.metadata.create_all(bind=database.engine)
         database.ensure_schema()
+        print("Database connection successfully established.")
         break
     except OperationalError as e:
+        print(f"Render DB waking up... connection failed. Retrying in 5 seconds (Attempt {attempt+1}/{max_retries})")
         # Retry for transient errors like "SSL connection has been closed unexpectedly"
         if attempt < max_retries - 1:
             time.sleep(5)
         else:
+            print("Failed to connect to database after maximum retries.")
             raise
 
 seed() # Auto-seed on startup
