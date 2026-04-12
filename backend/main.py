@@ -16,8 +16,22 @@ import shutil
 import pytesseract
 from PIL import Image, ImageOps, ImageFilter
 
-models.Base.metadata.create_all(bind=database.engine)
-database.ensure_schema()
+import time
+from sqlalchemy.exc import OperationalError
+
+max_retries = 5
+for attempt in range(max_retries):
+    try:
+        models.Base.metadata.create_all(bind=database.engine)
+        database.ensure_schema()
+        break
+    except OperationalError as e:
+        # Retry for transient errors like "SSL connection has been closed unexpectedly"
+        if attempt < max_retries - 1:
+            time.sleep(5)
+        else:
+            raise
+
 seed() # Auto-seed on startup
 
 logging.basicConfig(level=logging.INFO)
