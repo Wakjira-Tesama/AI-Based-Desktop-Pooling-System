@@ -4,9 +4,7 @@ import os
 from backend.database import SessionLocal, engine
 from backend import models, crud, schemas
 
-# Create tables
-models.Base.metadata.create_all(bind=engine)
-
+# Schema creation is handled by backend.main to support retry logic during deployment
 def seed() -> None:
     student_id = os.getenv("SEED_STUDENT_ID", "STU001")
     student_name = os.getenv("SEED_STUDENT_NAME", "Test Student")
@@ -118,4 +116,5 @@ def seed() -> None:
         db.close()
 
 if __name__ == "__main__":
+    models.Base.metadata.create_all(bind=engine)
     seed()
