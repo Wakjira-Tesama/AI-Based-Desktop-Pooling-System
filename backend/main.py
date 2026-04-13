@@ -16,27 +16,6 @@ import shutil
 import pytesseract
 from PIL import Image, ImageOps, ImageFilter
 
-import time
-from sqlalchemy.exc import OperationalError
-
-max_retries = 15
-for attempt in range(max_retries):
-    try:
-        models.Base.metadata.create_all(bind=database.engine)
-        database.ensure_schema()
-        print("Database connection successfully established.")
-        break
-    except OperationalError as e:
-        print(f"Render DB waking up... connection failed. Retrying in 5 seconds (Attempt {attempt+1}/{max_retries})")
-        # Retry for transient errors like "SSL connection has been closed unexpectedly"
-        if attempt < max_retries - 1:
-            time.sleep(5)
-        else:
-            print("Failed to connect to database after maximum retries.")
-            raise
-
-seed() # Auto-seed on startup
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sdpms")
 
@@ -60,7 +39,35 @@ def _guard_db_operation(
         logger.exception("%s failed", operation)
         raise HTTPException(status_code=500, detail=failure_detail)
 
-app = FastAPI(title="SDPMS API", description="Smart AI Desktop Pooling & Usage Management System")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize DB schema on startup (with retries for Render DB spin-up)
+    max_retries = 15
+    for attempt in range(max_retries):
+        try:
+            models.Base.metadata.create_all(bind=database.engine)
+            database.ensure_schema()
+            print("Database connection successfully established.")
+            break
+        except OperationalError as e:
+            print(f"Render DB waking up... connection failed. Retrying in 5 seconds (Attempt {attempt+1}/{max_retries})")
+            if attempt < max_retries - 1:
+                time.sleep(5)
+            else:
+                print("Failed to connect to database after maximum retries.")
+                raise
+    
+    # Auto-seed on startup
+    try:
+        seed()
+    except Exception as e:
+        print(f"Database seeding failed: {e}")
+        
+    yield
+
+app = FastAPI(title="SDPMS API", description="Smart AI Desktop Pooling & Usage Management System", lifespan=lifespan)
 
 ALLOWED_DESKTOP_STATUSES = {"offline", "available", "busy", "maintenance"}
 STUDENT_ID_PATTERN = re.compile(r"^ugr/\d{4,6}/\d{2}$", re.IGNORECASE)
