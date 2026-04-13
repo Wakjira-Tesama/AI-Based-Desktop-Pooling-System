@@ -237,52 +237,54 @@ def extract_id_match(
         raise HTTPException(status_code=503, detail="OCR engine not available")
 
     expected = expected_id.strip().lower() if expected_id else None
-    fast_candidates = extract_id_candidates(image, fast=True)
-    if expected:
-        for candidate in fast_candidates:
-            if candidate.lower() == expected:
-                return candidate, True
-
-    slow_candidates = extract_id_candidates(image, fast=False)
-    if expected:
-        for candidate in slow_candidates:
-            if candidate.lower() == expected:
-                return candidate, True
-
-    combined = fast_candidates + [
-        candidate for candidate in slow_candidates
-        if candidate not in fast_candidates
-    ]
-    if combined:
-        return combined[0], False
-    return None, False
-
-def extract_id_candidates(image: Image.Image, fast: bool) -> list[str]:
-    candidates = []
-    max_width = 800 if fast else 1200
-    working = downscale_image(image, max_width=max_width)
+    
+    # 1. Faster Downscaling: max 800px width.
+    working = downscale_image(image, max_width=800)
+    
+    # 2. Optimized Configs: PSM 6 (uniform block) and PSM 11 (sparse text order)
     ocr_configs = [
         f"--oem 3 --psm 6 -c tessedit_char_whitelist={OCR_WHITELIST}",
+        f"--oem 3 --psm 11 -c tessedit_char_whitelist={OCR_WHITELIST}",
     ]
-    if not fast:
-        ocr_configs.append(
-            f"--oem 3 --psm 7 -c tessedit_char_whitelist={OCR_WHITELIST}"
-        )
+    
+    # 3. Dynamic Rotation: EXIF usually handles basic rotation.
+    # We test 0° primarily. If height > width, standard portrait photos might need 90° or 270°.
+    angles = [0]
+    if working.height > working.width:
+        angles.extend([90, 270])
+        
+    candidates = []
 
-    try:
-        variants = generate_image_variants(working, fast=fast)
-        for variant in variants:
+    # 4. Instant-Return loop (stops immediately when match is found!)
+    for angle in angles:
+        rotated = working.rotate(angle, expand=True) if angle != 0 else working
+        
+        # Test basic grayscale/contrast first (gentle preprocessing, no destructive clipping)
+        gray = ImageOps.grayscale(rotated)
+        gray = ImageOps.autocontrast(gray)
+        enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+        
+        for variant in [gray, enhanced]:
             for config in ocr_configs:
-                text = pytesseract.image_to_string(variant, config=config)
-                normalized = normalize_ocr_text(text)
-                match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
-                if match:
-                    candidate = f"ugr/{match.group(1)}/{match.group(2)}"
-                    if candidate not in candidates:
-                        candidates.append(candidate)
-    except Exception:
-        return candidates
-    return candidates
+                try:
+                    text = pytesseract.image_to_string(variant, config=config)
+                    normalized = normalize_ocr_text(text)
+                    match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
+                    if match:
+                        candidate = f"ugr/{match.group(1)}/{match.group(2)}"
+                        if candidate not in candidates:
+                            candidates.append(candidate)
+                        
+                        # FAST RETURN
+                        if expected and candidate.lower() == expected:
+                            return candidate, True
+                except Exception:
+                    continue
+
+    if candidates:
+        return candidates[0], False
+        
+    return None, False
 
 def downscale_image(image: Image.Image, max_width: int = 800) -> Image.Image:
     if image.width <= max_width:
@@ -290,25 +292,6 @@ def downscale_image(image: Image.Image, max_width: int = 800) -> Image.Image:
     scale = max_width / image.width
     height = int(image.height * scale)
     return image.resize((max_width, height), Image.LANCZOS)
-
-def preprocess_id_image(image: Image.Image, fast: bool) -> Image.Image:
-    gray = ImageOps.grayscale(image)
-    gray = ImageOps.autocontrast(gray)
-    if fast:
-        return gray
-    gray = gray.filter(ImageFilter.MedianFilter(size=3))
-    gray = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
-    gray = gray.point(lambda x: 0 if x < 160 else 255, mode="1")
-    return gray
-
-def generate_image_variants(image: Image.Image, fast: bool) -> list[Image.Image]:
-    variants = []
-    angles = (0, 180) if fast else (0, 90, 180, 270)
-    for angle in angles:
-        rotated = image.rotate(angle, expand=True)
-        variants.append(rotated)
-        variants.append(preprocess_id_image(rotated, fast=fast))
-    return variants
 
 def normalize_ocr_text(text: str) -> str:
     cleaned = text.lower()
