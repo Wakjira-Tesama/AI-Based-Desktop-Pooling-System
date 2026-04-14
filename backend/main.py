@@ -258,6 +258,7 @@ def extract_id_match(
     candidates = []
 
     # 4. Instant-Return loop (stops immediately when match is found!)
+    # 4. Instant-Return loop (stops immediately when match is found!)
     for angle in angles:
         rotated = working.rotate(angle, expand=True) if angle != 0 else working
         
@@ -265,52 +266,45 @@ def extract_id_match(
         gray = ImageOps.grayscale(rotated)
         gray = ImageOps.autocontrast(gray)
         
-        # Enhanced variant (only used if gray fails)
+        # Enhanced variant (used if gray fails or doesn't match expected)
         enhanced = None
         
         # Try both variants: gray first, then enhanced
-        for variant_name, variant in [("gray", gray)]:
+        for variant_name, variant in [("gray", gray), ("enhanced", "PENDING")]:
+            if variant == "PENDING":
+                # Only create enhanced image if needed
+                if enhanced is None:
+                    enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+                current_variant = enhanced
+            else:
+                current_variant = variant
+
             for config in ocr_configs:
                 try:
-                    text = pytesseract.image_to_string(variant, config=config)
+                    text = pytesseract.image_to_string(current_variant, config=config)
                     normalized = normalize_ocr_text(text)
-                    # More lenient regex for prefix (handle misreads like U6R, VGR, etc.)
-                    match = re.search(r"(?:ugr|u6r|vgr|u9r|u8r)[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
+                    # Even more lenient regex: match any 3-letter prefix (handled by normalization)
+                    # Allow common characters that might be misread as 'ugr'
+                    match = re.search(r"([a-z0-9]{3})[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
                     if match:
-                        candidate = f"ugr/{match.group(1)}/{match.group(2)}"
+                        prefix = match.group(1)
+                        # We only care if it's likely a student ID (ugr, etc)
+                        # but we accept anything that fits the pattern for potential correction
+                        candidate = f"ugr/{match.group(2)}/{match.group(3)}"
+                        
                         if candidate not in candidates:
                             candidates.append(candidate)
                         
-                        # FAST RETURN
+                        # FAST RETURN: If we found exactly what we were looking for
                         if expected and candidate.lower() == expected:
                             return candidate, True
                 except Exception:
                     continue
             
-            # If we didn't find the expected match in gray, try enhanced once
-            if expected and not any(c.lower() == expected for c in candidates) and variant_name == "gray":
-                if enhanced is None:
-                     enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
-                # Next iteration of variant loop will pick up enhanced if I add it to the list
-                # Actually let's just make it explicit to avoid complex loop logic
-        
-        # Explicitly try enhanced if gray failed to find ANY candidate
-        if not candidates:
-            if enhanced is None:
-                enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
-            for config in ocr_configs:
-                try:
-                    text = pytesseract.image_to_string(enhanced, config=config)
-                    normalized = normalize_ocr_text(text)
-                    match = re.search(r"(?:ugr|u6r|vgr|u9r|u8r)[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
-                    if match:
-                        candidate = f"ugr/{match.group(1)}/{match.group(2)}"
-                        if expected and candidate.lower() == expected:
-                            return candidate, True
-                        if candidate not in candidates:
-                            candidates.append(candidate)
-                except Exception:
-                    continue
+            # If we found at least one candidate and we aren't specifically looking for an expected_id,
+            # we can stop after the first variant to save time.
+            if not expected and candidates:
+                break
 
     if candidates:
         return candidates[0], False
