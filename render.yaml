@@ -1,9 +1,7 @@
 services:
   - type: web
     name: sdpms-backend
-    runtime: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: bash -lc 'if [ "$AUTO_SEED" = "true" ]; then python seed_db.py; fi; uvicorn backend.main:app --host 0.0.0.0 --port $PORT'
+    runtime: docker
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
@@ -14,7 +12,7 @@ services:
       - key: AUTO_SEED
         value: true
       - key: CORS_ORIGINS
-        value: https://sdpms-frontend.onrender.com,http://localhost:5173,http://localhost:5479,http://localhost:5480
+        value: https://astudesktopa.netlify.app,https://astudesktop.netlify.app,http://localhost:5173
       - key: SEED_STUDENT_ID
         value: STU001
       - key: SEED_STUDENT_NAME

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from typing import List
 from . import crud, models, schemas, database, auth
 from seed_db import seed
@@ -11,6 +11,7 @@ from io import BytesIO
 import logging
 import os
 import re
+import time
 import shutil
 
 import pytesseract
@@ -75,6 +76,7 @@ OCR_WHITELIST = "UGRugr0123456789/"
 
 DEFAULT_CORS_ORIGINS = [
     "https://astudesktop.netlify.app",
+    "https://astudesktopa.netlify.app",
     "http://localhost:5173",
     "http://localhost:5479",
     "http://localhost:5480",
@@ -259,17 +261,21 @@ def extract_id_match(
     for angle in angles:
         rotated = working.rotate(angle, expand=True) if angle != 0 else working
         
-        # Test basic grayscale/contrast first (gentle preprocessing, no destructive clipping)
+        # Test basic grayscale/contrast first
         gray = ImageOps.grayscale(rotated)
         gray = ImageOps.autocontrast(gray)
-        enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
         
-        for variant in [gray, enhanced]:
+        # Enhanced variant (only used if gray fails)
+        enhanced = None
+        
+        # Try both variants: gray first, then enhanced
+        for variant_name, variant in [("gray", gray)]:
             for config in ocr_configs:
                 try:
                     text = pytesseract.image_to_string(variant, config=config)
                     normalized = normalize_ocr_text(text)
-                    match = re.search(r"ugr[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
+                    # More lenient regex for prefix (handle misreads like U6R, VGR, etc.)
+                    match = re.search(r"(?:ugr|u6r|vgr|u9r|u8r)[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
                     if match:
                         candidate = f"ugr/{match.group(1)}/{match.group(2)}"
                         if candidate not in candidates:
@@ -278,6 +284,31 @@ def extract_id_match(
                         # FAST RETURN
                         if expected and candidate.lower() == expected:
                             return candidate, True
+                except Exception:
+                    continue
+            
+            # If we didn't find the expected match in gray, try enhanced once
+            if expected and not any(c.lower() == expected for c in candidates) and variant_name == "gray":
+                if enhanced is None:
+                     enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+                # Next iteration of variant loop will pick up enhanced if I add it to the list
+                # Actually let's just make it explicit to avoid complex loop logic
+        
+        # Explicitly try enhanced if gray failed to find ANY candidate
+        if not candidates:
+            if enhanced is None:
+                enhanced = gray.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+            for config in ocr_configs:
+                try:
+                    text = pytesseract.image_to_string(enhanced, config=config)
+                    normalized = normalize_ocr_text(text)
+                    match = re.search(r"(?:ugr|u6r|vgr|u9r|u8r)[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
+                    if match:
+                        candidate = f"ugr/{match.group(1)}/{match.group(2)}"
+                        if expected and candidate.lower() == expected:
+                            return candidate, True
+                        if candidate not in candidates:
+                            candidates.append(candidate)
                 except Exception:
                     continue
 
