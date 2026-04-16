@@ -78,7 +78,7 @@ const verifyStudentId = async (req, res) => {
     });
   } catch (error) {
     logger.error('Verification Error', error);
-    res.status(500).json({ detail: 'ID check failed' });
+    res.status(500).json({ detail: `ID check failed: ${error.message}` });
   }
 };
 
