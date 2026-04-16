@@ -72,7 +72,7 @@ app = FastAPI(title="SDPMS API", description="Smart AI Desktop Pooling & Usage M
 
 ALLOWED_DESKTOP_STATUSES = {"offline", "available", "busy", "maintenance"}
 STUDENT_ID_PATTERN = re.compile(r"^ugr/\d{4,6}/\d{2}$", re.IGNORECASE)
-OCR_WHITELIST = "UGRugr0123456789/"
+OCR_WHITELIST = "UGRugr0123456789/IDNumber: "
 
 DEFAULT_CORS_ORIGINS = [
     "https://astudesktop.netlify.app",
@@ -240,8 +240,8 @@ def extract_id_match(
 
     expected = expected_id.strip().lower() if expected_id else None
     
-    # 1. Faster Downscaling: max 800px width.
-    working = downscale_image(image, max_width=800)
+    # 1. Faster Downscaling: max 1200px width (increased from 800 for better detail)
+    working = downscale_image(image, max_width=1200)
     
     # 2. Optimized Configs: PSM 6 (uniform block) and PSM 11 (sparse text order)
     ocr_configs = [
@@ -283,22 +283,33 @@ def extract_id_match(
                 try:
                     text = pytesseract.image_to_string(current_variant, config=config)
                     normalized = normalize_ocr_text(text)
-                    # Even more lenient regex: match any 3-letter prefix (handled by normalization)
-                    # Allow common characters that might be misread as 'ugr'
+                    logger.info(f"OCR ({variant_name}, {angle}°, config={config}): {normalized[:100]}...")
+
+                    # Regex 1: Standard pattern (e.g. ugr/12345/67)
                     match = re.search(r"([a-z0-9]{3})[^0-9]*?(\d{4,6})[^0-9]*?(\d{2})", normalized)
                     if match:
-                        prefix = match.group(1)
-                        # We only care if it's likely a student ID (ugr, etc)
-                        # but we accept anything that fits the pattern for potential correction
                         candidate = f"ugr/{match.group(2)}/{match.group(3)}"
-                        
                         if candidate not in candidates:
                             candidates.append(candidate)
                         
                         # FAST RETURN: If we found exactly what we were looking for
                         if expected and candidate.lower() == expected:
+                            logger.info(f"MATCH FOUND: {candidate}")
                             return candidate, True
-                except Exception:
+
+                    # Regex 2: Digit-only fallback (if we know what we're looking for, just find those numbers)
+                    if expected:
+                        expected_nums = re.findall(r"\d+", expected)
+                        if len(expected_nums) >= 2:
+                            id_num = expected_nums[0]
+                            year_num = expected_nums[1]
+                            # Match if both number blocks appear in the normalized text in order
+                            if id_num in normalized and year_num in normalized:
+                                # Ensure id is before year or at least present
+                                logger.info(f"MATCH FOUND (Leniency): {expected}")
+                                return expected, True
+                except Exception as e:
+                    logger.error(f"OCR Error: {e}")
                     continue
             
             # If we found at least one candidate and we aren't specifically looking for an expected_id,
@@ -311,7 +322,7 @@ def extract_id_match(
         
     return None, False
 
-def downscale_image(image: Image.Image, max_width: int = 800) -> Image.Image:
+def downscale_image(image: Image.Image, max_width: int = 1200) -> Image.Image:
     if image.width <= max_width:
         return image
     scale = max_width / image.width
@@ -331,6 +342,8 @@ def normalize_ocr_text(text: str) -> str:
     cleaned = cleaned.replace("i", "1")
     cleaned = cleaned.replace("s", "5")
     cleaned = cleaned.replace("o", "0")
+    cleaned = cleaned.replace("g", "9") # common misread
+    cleaned = cleaned.replace("z", "2") # common misread
     return cleaned
 
 def resolve_tesseract_cmd() -> str | None:

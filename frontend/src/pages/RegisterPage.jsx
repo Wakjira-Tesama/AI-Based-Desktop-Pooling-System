@@ -108,7 +108,7 @@ export default function RegisterPage() {
 
       const response = await api.post("/students/verify-id", payload, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 30000, // 30 second timeout for OCR
+        timeout: 60000, // Increased to 60 seconds for robust OCR
       });
 
       const matches = !!response.data?.matches;
