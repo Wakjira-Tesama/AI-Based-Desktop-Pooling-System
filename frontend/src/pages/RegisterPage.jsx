@@ -116,16 +116,12 @@ export default function RegisterPage() {
       if (matches) {
         setIdCheckSuccess(true);
         idVerifiedRef.current = true;
-        setIdCheckMessage("ID verified. You can continue registration.");
+        setIdCheckMessage("ID verified! You can now complete the form and create your account.");
         if (extractedId) {
           setFormData((prev) => ({
             ...prev,
             student_id: extractedId,
           }));
-        }
-        const fieldsReady = formData.name.trim() && formData.email.trim();
-        if (fieldsReady) {
-          await submitRegistration();
         }
       } else {
         setIdCheckSuccess(false);
@@ -226,8 +222,6 @@ export default function RegisterPage() {
                 name="student_id"
                 type="text"
                 required
-                pattern="ugr/\\d{4,6}/\\d{2}"
-                title="Format: ugr/32337/15"
                 className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
                 placeholder="e.g., ugr/32337/15"
                 value={formData.student_id}
@@ -334,25 +328,6 @@ export default function RegisterPage() {
                 className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
                 placeholder="John Doe"
                 value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="relative block w-full rounded-lg border-0 bg-gray-700 py-3 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm"
-                placeholder="you@example.com"
-                value={formData.email}
                 onChange={handleChange}
               />
             </div>

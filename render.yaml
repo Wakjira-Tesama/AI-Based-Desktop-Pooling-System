@@ -3,30 +3,14 @@ services:
     name: sdpms-backend
     runtime: docker
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.11
-      - key: SECRET_KEY
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 30
       - key: AUTO_SEED
         value: true
-      - key: CORS_ORIGINS
-        value: https://astudesktopa.netlify.app,https://astudesktop.netlify.app,http://localhost:5173
-      - key: SEED_STUDENT_ID
-        value: STU001
-      - key: SEED_STUDENT_NAME
-        value: Test Student
-      - key: SEED_STUDENT_EMAIL
-        value: student@test.com
-      - key: SEED_STUDENT_PASSWORD
-        value: password123
-      - key: SEED_ADMIN_ID
-        value: MGR001
-      - key: SEED_ADMIN_NAME
-        value: Library Manager
-      - key: SEED_ADMIN_EMAIL
-        value: manager@test.com
       - key: SEED_ADMIN_PASSWORD
         value: admin123
 

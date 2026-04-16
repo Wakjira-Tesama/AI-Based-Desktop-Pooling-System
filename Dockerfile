@@ -1,17 +1,23 @@
-FROM python:3.12-slim
+FROM node:20-slim
 
-RUN apt-get update \
-    && apt-get install -y tesseract-ocr \
+# Install Tesseract and other dependencies for Sharp and OCR
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    libvips-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Copy package files and install dependencies
+COPY backend/package*.json ./
+RUN npm install --production
 
-COPY backend /app/backend
-COPY seed_db.py /app/seed_db.py
+# Copy source code
+COPY backend/src ./src
 
-ENV PYTHONPATH=/app
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8000
 
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Start command
+CMD ["npm", "start"]

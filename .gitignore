@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+auth.db
+sql_app.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+ocr_tmp_*
+*.png
+*.jpg
+*.jpeg
+!assets/*.png
+!assets/*.jpg
+!assets/*.jpeg
