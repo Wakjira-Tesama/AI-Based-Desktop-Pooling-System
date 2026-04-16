@@ -3,6 +3,8 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 const sharp = require('sharp');
 const path = require('path');
+const os = require('os');
+const fs = require('fs');
 const logger = require('./logger');
 
 const OCR_WHITELIST = "UGRugr0123456789/IDNumber: ";
@@ -15,16 +17,18 @@ const runTesseract = async (imageBuffer, config) => {
   const psm = config.psm || 6;
   const lang = config.lang || 'eng';
   
-  // Use a unique temp path in the current directory
-  const tmpPath = path.join(process.cwd(), `ocr_tmp_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`);
-  const fs = require('fs');
+  // Use system temp directory for more reliability across OS/Docker
+  const tmpPath = path.join(os.tmpdir(), `ocr_tmp_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`);
   
   try {
     fs.writeFileSync(tmpPath, imageBuffer);
     
-    // Quote the paths for Windows safety
-    const command = `"${tesseractPath}" "${tmpPath}" stdout -l ${lang} --oem 3 --psm ${psm}`;
-    logger.info(`Running OCR command: ${command}`);
+    // Construction of command - be careful with quoting on different OS
+    const isWindows = process.platform === 'win32';
+    const cmd = isWindows ? `"${tesseractPath}"` : tesseractPath;
+    const command = `${cmd} "${tmpPath}" stdout -l ${lang} --oem 3 --psm ${psm}`;
+    
+    logger.info(`Running ID Verification OCR: ${command}`);
     
     // On Windows, some tesseract outputs go to stderr but aren't errors
     const { stdout, stderr } = await execAsync(command);
