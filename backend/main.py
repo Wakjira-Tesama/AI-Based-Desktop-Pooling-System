@@ -240,8 +240,8 @@ def extract_id_match(
 
     expected = expected_id.strip().lower() if expected_id else None
     
-    # 1. Faster Downscaling: max 1200px width (increased from 800 for better detail)
-    working = downscale_image(image, max_width=1200)
+    # 1. Faster Downscaling: max 1000px width (balance between speed and detail)
+    working = downscale_image(image, max_width=1000)
     
     # 2. Optimized Configs: PSM 6 (uniform block) and PSM 11 (sparse text order)
     ocr_configs = [
@@ -322,7 +322,7 @@ def extract_id_match(
         
     return None, False
 
-def downscale_image(image: Image.Image, max_width: int = 1200) -> Image.Image:
+def downscale_image(image: Image.Image, max_width: int = 1000) -> Image.Image:
     if image.width <= max_width:
         return image
     scale = max_width / image.width
