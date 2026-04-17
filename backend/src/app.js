@@ -21,6 +21,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Root route for server identification
+app.get('/', (req, res) => {
+  res.send(`
+    <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: white;">
+      <div style="text-align: center; border: 1px solid #334155; padding: 2rem; border-radius: 12px; background: #1e293b;">
+        <h1 style="color: #38bdf8;">🚀 SDPMS API is Live</h1>
+        <p>The Node.js backend is successfully connected to MongoDB Atlas.</p>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Ready for requests from the frontend.</p>
+      </div>
+    </body>
+  `);
+});
+
 // Routes
 app.use('/', authRoutes); // Includes /token, /students/login, /me
 app.use('/students', studentRoutes);
