@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const { registerStudent, verifyStudentId, getStudents } = require('../controllers/studentController');
+const { registerStudent, verifyOTP, getStudents } = require('../controllers/studentController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-// Multer setup for memory storage (for OCR)
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+// Public routes
+router.post('/', registerStudent);
+router.post('/verify-otp', verifyOTP);
 
-router.post('/', upload.single('id_image'), registerStudent);
-router.post('/verify-id', upload.single('id_image'), verifyStudentId);
+// Admin routes
 router.get('/', protect, admin, getStudents);
 
 module.exports = router;

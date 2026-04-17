@@ -1,84 +1,113 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const Student = require('../models/Student');
-const ocrEngine = require('../utils/ocrEngine');
+const emailService = require('../utils/emailService');
 const logger = require('../utils/logger');
 
-// @desc    Register a new student
+// @desc    Register a new student (Step 1: Send OTP)
 // @route   POST /students/
-// @access  Public (Requires ID Verification)
+// @access  Public
 const registerStudent = async (req, res) => {
-  const { student_id, name, password } = req.body;
+  const { student_id, name, email, password } = req.body;
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ detail: 'University ID image is required' });
+    if (!student_id || !name || !email || !password) {
+      return res.status(400).json({ detail: 'Please provide all required fields (ID, Name, Email, Password)' });
     }
 
-    // 1. Verify ID using OCR
-    const { extracted_id, matches } = await ocrEngine.extractIdMatch(req.file.buffer, student_id);
-    
-    if (!extracted_id) {
-      return res.status(400).json({ detail: 'University ID not found in image' });
-    }
-    if (!matches) {
-      return res.status(400).json({ detail: 'Student ID does not match uploaded ID' });
-    }
-
-    // 2. Check for existing user (ID only)
-    const idExists = await Student.findOne({ student_id });
-    if (idExists) {
-      return res.status(400).json({ detail: 'Student ID already registered' });
-    }
-
-    // 3. Hash password and create student
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password || 'password123', salt);
-
-    const student = await Student.create({
-      student_id,
-      name,
-      password: hashedPassword,
+    // 1. Check if student already exists
+    const studentExists = await Student.findOne({ 
+      $or: [{ student_id }, { email }] 
     });
 
-    const studentObj = student.toObject();
-    studentObj.id = studentObj._id;
-    res.status(201).json(studentObj);
+    if (studentExists) {
+      if (studentExists.is_verified) {
+        return res.status(400).json({ detail: 'Student ID or Email already registered' });
+      }
+      // If student exists but is NOT verified, we allow re-registration (overwrites OTP)
+      // or we can just send a new OTP to the existing record.
+    }
+
+    // 2. Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    let student;
+    if (studentExists && !studentExists.is_verified) {
+      // Update existing unverified student
+      student = await Student.findOneAndUpdate(
+        { student_id },
+        { name, email, password: hashedPassword, otp_code: otp, otp_expires: otpExpires },
+        { new: true }
+      );
+    } else {
+      // Create new student record
+      student = await Student.create({
+        student_id,
+        name,
+        email,
+        password: hashedPassword,
+        otp_code: otp,
+        otp_expires: otpExpires,
+        is_verified: false
+      });
+    }
+
+    // 3. Send OTP via Email
+    await emailService.sendOTPEmail(email, name, otp);
+
+    res.status(200).json({ 
+      detail: 'OTP sent to your email. Please verify to complete registration.',
+      student_id: student.student_id 
+    });
   } catch (error) {
     logger.error('Registration Error', error);
-    res.status(500).json({ detail: 'Registration failed' });
+    res.status(500).json({ detail: 'Registration failed during OTP phase' });
   }
 };
 
-// @desc    Verify ID only (matching verify-id endpoint)
-// @route   POST /students/verify-id
+// @desc    Verify OTP and activate account
+// @route   POST /students/verify-otp
 // @access  Public
-const verifyStudentId = async (req, res) => {
-  const { student_id } = req.body;
+const verifyOTP = async (req, res) => {
+  const { student_id, otp } = req.body;
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ detail: 'University ID image is required' });
+    const student = await Student.findOne({ student_id });
+
+    if (!student) {
+      return res.status(404).json({ detail: 'Student not found' });
     }
 
-    const { extracted_id, matches } = await ocrEngine.extractIdMatch(req.file.buffer, student_id);
-    
-    if (!extracted_id) {
-      return res.status(400).json({ detail: 'University ID not found in image' });
+    if (student.is_verified) {
+      return res.status(400).json({ detail: 'Account is already verified' });
     }
 
-    // New check: Is this ID already registered?
-    const idExists = await Student.findOne({ student_id: extracted_id });
-    if (idExists) {
-      return res.status(400).json({ detail: 'This Student ID is already registered. Please sign in instead.' });
+    // Check if OTP matches and is not expired
+    if (student.otp_code !== otp) {
+      return res.status(400).json({ detail: 'Invalid verification code' });
     }
+
+    if (student.otp_expires < Date.now()) {
+      return res.status(400).json({ detail: 'Verification code has expired' });
+    }
+
+    // Mark as verified and clear OTP
+    student.is_verified = true;
+    student.otp_code = undefined;
+    student.otp_expires = undefined;
+    await student.save();
 
     res.json({
-      extracted_id: extracted_id,
-      matches: matches,
+      detail: 'Account verified successfully! You can now log in.',
+      student_id: student.student_id
     });
   } catch (error) {
-    logger.error('Verification Error', error);
-    res.status(500).json({ detail: `ID check failed: ${error.message}` });
+    logger.error('OTP Verification Error', error);
+    res.status(500).json({ detail: 'OTP verification failed' });
   }
 };
 
@@ -88,7 +117,6 @@ const verifyStudentId = async (req, res) => {
 const getStudents = async (req, res) => {
   try {
     const students = await Student.find({}).select('-password');
-    // Map _id to id for frontend
     const mapped = students.map(s => {
       const obj = s.toObject();
       obj.id = obj._id;
@@ -103,6 +131,6 @@ const getStudents = async (req, res) => {
 
 module.exports = {
   registerStudent,
-  verifyStudentId,
+  verifyOTP,
   getStudents,
 };

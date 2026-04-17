@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
 
@@ -8,6 +8,8 @@ export default function LoginPage({ role }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isVerified = searchParams.get("verified") === "true";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -109,6 +111,12 @@ export default function LoginPage({ role }) {
           {error && (
             <div className="text-red-500 text-sm text-center font-medium bg-red-500/10 py-2 rounded">
               {error}
+            </div>
+          )}
+
+          {isVerified && !error && (
+            <div className="text-emerald-500 text-sm text-center font-medium bg-emerald-500/10 py-2 rounded">
+              Account verified successfully! Please sign in.
             </div>
           )}
 
