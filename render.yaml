@@ -22,7 +22,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://sdpms-backend.onrender.com
+        value: https://ai-based-desktop-pooling-system-1.onrender.com
     routes:
       - type: rewrite
         source: /*
