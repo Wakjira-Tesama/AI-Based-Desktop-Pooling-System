@@ -28,21 +28,14 @@ const runTesseract = async (imageBuffer, config) => {
     const cmd = isWindows ? `"${tesseractPath}"` : tesseractPath;
     const command = `${cmd} "${tmpPath}" stdout -l ${lang} --oem 3 --psm ${psm}`;
     
-    logger.info(`Running ID Verification OCR: ${command}`);
-    
     // On Windows, some tesseract outputs go to stderr but aren't errors
     const { stdout, stderr } = await execAsync(command);
     
-    if (stderr && stderr.trim()) {
-      logger.warn(`Tesseract stderr info: ${stderr}`);
-    }
-    
     if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-    return stdout;
+    return stdout || "";
   } catch (error) {
     logger.error(`Tesseract Execution Failed. Cmd: ${error.cmd}`, error);
     if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-    // Return empty string instead of throwing if we got some stdout
     if (error.stdout) return error.stdout;
     throw error;
   }
@@ -170,43 +163,39 @@ const extractIdMatch = async (imageBuffer, expectedId) => {
 
   try {
     // 1. Preprocessing Strategy A: High Contrast + Sharp
-    const processedImageA = await sharp(imageBuffer)
-      .resize(1600, null, { withoutEnlargement: true, fit: 'inside' })
+    // High Contrast Preprocessing
+    const imageA = await sharp(imageBuffer)
+      .resize(1100, null, { withoutEnlargement: true, fit: 'inside' })
       .grayscale()
       .normalize()
       .sharpen()
       .toBuffer();
 
-    // 2. Preprocessing Strategy B: Thresholding (Black & White)
-    const processedImageB = await sharp(imageBuffer)
-      .resize(1600, null, { withoutEnlargement: true, fit: 'inside' })
+    // Threshold Preprocessing
+    const imageB = await sharp(imageBuffer)
+      .resize(1100, null, { withoutEnlargement: true, fit: 'inside' })
       .grayscale()
-      .threshold(120)
+      .threshold(130)
       .toBuffer();
 
-    // PASS 1: High Contrast (Strategy A + PSM 3)
-    let text = await runTesseract(processedImageA, { ...tesseractConfig, psm: 3 });
-    let normalized = normalizeOcrText(text);
-    logger.info(`OCR Pass 1 (High Contrast/PSM 3) Normalized: ${normalized}`);
-    
-    let { res, isExact } = checkTextForId(normalized, expected);
-    if (isExact) return { extracted_id: res, matches: true };
-    if (res) candidates.push(res);
+    // RUN PRIMARY PASSES IN PARALLEL
+    const results = await Promise.all([
+      runTesseract(imageA, { ...tesseractConfig, psm: 3 }),
+      runTesseract(imageB, { ...tesseractConfig, psm: 6 })
+    ]);
 
-    // PASS 2: Classic Vision (Strategy B + PSM 6)
-    if (Date.now() - startTime < 15000) {
-      text = await runTesseract(processedImageB, { ...tesseractConfig, psm: 6 });
-      normalized = normalizeOcrText(text);
-      logger.info(`OCR Pass 2 (Classic/PSM 6) Normalized: ${normalized}`);
-      ({ res, isExact } = checkTextForId(normalized, expected));
+    // Check results from parallel passes
+    for (const text of results) {
+      const normalized = normalizeOcrText(text);
+      const { res, isExact } = checkTextForId(normalized, expected);
       if (isExact) return { extracted_id: res, matches: true };
       if (res && !candidates.includes(res)) candidates.push(res);
     }
 
-    // PASS 2: ROTATION (Only as a fallback)
+    // FALLBACK: ROTATION (Only if exact match not found above)
     const angles = [90, 270];
     for (const angle of angles) {
-      if (Date.now() - startTime > 22000) break; // Render timeout safety
+      if (Date.now() - startTime > 15000) break; // Speed safety
       const rotatedImage = await sharp(imageBuffer)
         .resize(1000, null, { withoutEnlargement: true, fit: 'inside' })
         .rotate(angle)
@@ -214,9 +203,9 @@ const extractIdMatch = async (imageBuffer, expectedId) => {
         .normalize()
         .toBuffer();
 
-      text = await runTesseract(rotatedImage, { ...tesseractConfig, psm: 6 });
-      normalized = normalizeOcrText(text);
-      ({ res, isExact } = checkTextForId(normalized, expected));
+      const text = await runTesseract(rotatedImage, { ...tesseractConfig, psm: 6 });
+      const normalized = normalizeOcrText(text);
+      const { res, isExact } = checkTextForId(normalized, expected);
       if (isExact) return { extracted_id: res, matches: true };
       if (res && !candidates.includes(res)) candidates.push(res);
     }

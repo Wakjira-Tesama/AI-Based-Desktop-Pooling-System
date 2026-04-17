@@ -15,16 +15,7 @@ const issueRoutes = require('./routes/issueRoutes');
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [
-    "http://localhost:5173",
-    "http://localhost:5479",
-    "http://localhost:5480",
-    "https://astudesktop.netlify.app",
-    "https://astudesktopa.netlify.app"
-  ],
-  credentials: true
-}));
+app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
