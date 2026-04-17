@@ -146,26 +146,7 @@ export default function LoginPage({ role }) {
               </Link>
             </div>
           )}
-          {role === "admin" && (
-             <div className="text-center text-sm">
-              <Link
-                to="/student-login"
-                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Are you a student?
-              </Link>
-            </div>
-          )}
-          {role === "student" && (
-             <div className="text-center text-sm mt-2">
-              <Link
-                to="/admin-login"
-                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Are you an admin?
-              </Link>
-            </div>
-          )}
+
         </form>
       </div>
     </div>
