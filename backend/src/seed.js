@@ -45,16 +45,32 @@ const seed = async () => {
     }
 
     // 3. Seed Desktops
-    const desktopCount = await Desktop.countDocuments();
-    if (desktopCount === 0) {
-      const desktops = [
-        { desktop_id: 'LIB-001', ip_address: '192.168.1.10', library: 'central', status: 'available' },
-        { desktop_id: 'LIB-002', ip_address: '192.168.1.11', library: 'central', status: 'available' },
-        { desktop_id: 'APP-001', ip_address: '192.168.2.10', library: 'applied', status: 'available' },
-      ];
-      await Desktop.insertMany(desktops);
-      logger.info('Initial desktops created');
+    await Desktop.deleteMany({}); // Wipe existing to re-seed
+    
+    const desktops = [];
+    
+    // Central library desktops
+    for (let i = 1; i <= 10; i++) {
+      desktops.push({
+        desktop_id: `LIB-${i.toString().padStart(3, '0')}`,
+        ip_address: `192.168.1.${9 + i}`,
+        library: 'central',
+        status: 'available'
+      });
     }
+
+    // Applied library desktops
+    for (let i = 1; i <= 10; i++) {
+      desktops.push({
+        desktop_id: `APP-${i.toString().padStart(3, '0')}`,
+        ip_address: `192.168.2.${9 + i}`,
+        library: 'applied',
+        status: 'available'
+      });
+    }
+
+    await Desktop.insertMany(desktops);
+    logger.info('10 initial desktops created for both central and applied libraries');
 
     logger.info('Seeding complete');
     process.exit(0);

@@ -11,6 +11,7 @@ const desktopRoutes = require('./routes/desktopRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const issueRoutes = require('./routes/issueRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/desktops', desktopRoutes);
 app.use('/sessions', sessionRoutes);
 app.use('/schedule', scheduleRoutes);
 app.use('/issues', issueRoutes);
+app.use('/analytics', analyticsRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'SDPMS Backend (Node.js)' }));

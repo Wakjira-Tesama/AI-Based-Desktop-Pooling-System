@@ -54,7 +54,7 @@ export default function DashboardPage() {
         navigate("/select-library");
         return;
       }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateString();
       const [desktopsRes, userRes, scheduleRes] = await Promise.all([
         api.get("/desktops/overview", { params: { library: selectedLibrary } }),
         api.get("/me"),
@@ -132,6 +132,14 @@ export default function DashboardPage() {
     return hours * 60 + minutes;
   };
 
+  const getLocalDateString = (date = new Date()) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const isSlotExpired = (slot) => {
     if (!slot?.end) return false;
     const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
@@ -140,12 +148,30 @@ export default function DashboardPage() {
 
   const isEntryExpired = (entry) => {
     if (!entry?.date || !entry?.end_time) return false;
-    const today = new Date().toISOString().slice(0, 10);
-    if (entry.date < today) return true;
-    if (entry.date > today) return false;
+    const entryDateStr = getLocalDateString(entry.date);
+    const todayStr = getLocalDateString();
+    
+    if (entryDateStr < todayStr) return true;
+    if (entryDateStr > todayStr) return false;
+    
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     return nowMinutes >= timeToMinutes(entry.end_time);
+  };
+
+  const isEntryActive = (entry) => {
+    if (!entry?.date || !entry?.start_time || !entry?.end_time) return false;
+    const entryDateStr = getLocalDateString(entry.date);
+    const todayStr = getLocalDateString();
+    
+    if (entryDateStr !== todayStr) return false;
+    
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const start = timeToMinutes(entry.start_time);
+    const end = timeToMinutes(entry.end_time);
+    
+    return nowMinutes >= start && nowMinutes < end;
   };
 
   const timesOverlap = (startA, endA, startB, endB) => {
@@ -246,7 +272,7 @@ export default function DashboardPage() {
     setRegisterError("");
     setStartingSession(entry.desktop_id);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateString();
       await api.post("/schedule/entry", {
         desktop_id: entry.desktop_id,
         date: entry.date || today,
@@ -275,7 +301,7 @@ export default function DashboardPage() {
 
     setStartingSession(selectedDesktop.id);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateString();
       const formData = new FormData();
       formData.append("desktop_id", String(selectedDesktop.id));
       formData.append("date", today);
@@ -311,16 +337,30 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
-    if (!bookingEntry) return;
-    if (!isEntryExpired(bookingEntry)) return;
-    const entryKey = `${bookingEntry.desktop_id}-${bookingEntry.date}-${bookingEntry.start_time}-${bookingEntry.end_time}`;
-    if (entryKey === lastEndedKey) return;
-    showNotice(
-      "Your time is ended please register on available desktop",
-      "error",
-    );
-    setLastEndedKey(entryKey);
-  }, [bookingEntry, lastEndedKey, currentTime]);
+    if (!bookingEntry) {
+      if (noticeMessage === "Your session is in progress" || noticeMessage === "Your time is ended please register on available desktop") {
+        clearNotice();
+      }
+      return;
+    }
+
+    if (isEntryActive(bookingEntry)) {
+      // Only set if not already showing another manual message (like "Time slot registered successfully")
+      // or if it's currently showing the "ended" message (which shouldn't happen if it's active).
+      if (!noticeMessage || noticeMessage === "Your time is ended please register on available desktop") {
+        showNotice("Your session is in progress", "success");
+      }
+    } else if (isEntryExpired(bookingEntry)) {
+      const entryKey = `${bookingEntry.desktop_id}-${bookingEntry.date}-${bookingEntry.start_time}-${bookingEntry.end_time}`;
+      if (entryKey !== lastEndedKey) {
+        showNotice(
+          "Your time is ended please register on available desktop",
+          "error",
+        );
+        setLastEndedKey(entryKey);
+      }
+    }
+  }, [bookingEntry, lastEndedKey, currentTime, noticeMessage]);
 
   if (loading) {
     return (
