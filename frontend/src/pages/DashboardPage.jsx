@@ -20,6 +20,12 @@ const TIME_SLOTS = [
   { start: "15:00", end: "16:00", label: "3:00PM-4:00PM" },
   { start: "16:00", end: "17:00", label: "4:00PM-5:00PM" },
   { start: "17:00", end: "18:00", label: "5:00PM-6:00PM" },
+  { start: "18:00", end: "19:00", label: "6:00PM-7:00PM" },
+  { start: "19:00", end: "20:00", label: "7:00PM-8:00PM" },
+  { start: "20:00", end: "21:00", label: "8:00PM-9:00PM" },
+  { start: "21:00", end: "22:00", label: "9:00PM-10:00PM" },
+  { start: "22:00", end: "23:00", label: "10:00PM-11:00PM" },
+  { start: "23:00", end: "00:00", label: "11:00PM-12:00AM" },
 ];
 
 export default function DashboardPage() {
