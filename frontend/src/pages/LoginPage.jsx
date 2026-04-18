@@ -55,9 +55,9 @@ export default function LoginPage({ role }) {
       <div className="astu-content w-full max-w-md space-y-8 astu-card p-8 astu-anim-in">
         <div>
           <img
-            src="/astu-logo.svg"
+            src="/astu-logo.png"
             alt="ASTU logo"
-            className="astu-logo mx-auto"
+            className="astu-logo astu-logo-lg mx-auto"
             onError={(event) => {
               event.currentTarget.style.display = "none";
             }}

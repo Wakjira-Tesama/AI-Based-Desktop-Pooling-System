@@ -81,7 +81,7 @@ export default function RegisterPage() {
       <div className="astu-content w-full max-w-md space-y-8 astu-card p-8 astu-anim-in">
         <div>
           <img
-            src="/astu-logo.svg"
+            src="/astu-logo.png"
             alt="ASTU logo"
             className="astu-logo mx-auto"
             onError={(event) => {

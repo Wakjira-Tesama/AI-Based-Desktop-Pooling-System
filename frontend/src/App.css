@@ -118,9 +118,19 @@
 .astu-logo {
   width: 56px;
   height: 56px;
-  object-fit: contain;
-  filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.6));
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  padding: 1px;
+  background: white;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   animation: astu-float 7s ease-in-out infinite;
+  transition: transform 0.3s ease;
+}
+
+.astu-logo:hover {
+  transform: scale(1.05) rotate(5deg);
+  border-color: var(--astu-blue);
 }
 
 .astu-title {
@@ -128,8 +138,10 @@
   letter-spacing: 0.02em;
 }
 
-.astu-subtitle {
-  color: rgba(226, 232, 240, 0.72);
+.astu-logo-lg {
+  width: 96px;
+  height: 96px;
+  border-width: 3px;
 }
 
 .astu-anim-in {

@@ -222,7 +222,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img
-                src="/astu-logo.svg"
+                src="/astu-logo.png"
                 alt="ASTU logo"
                 className="astu-logo"
                 onError={(event) => {
