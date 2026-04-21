@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:admin": "vite --host --port 5480 --mode admin",
-    "dev:student": "vite --host --port 5479 --mode student",
+    "dev:student": "vite --host --port 5173 --mode student",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

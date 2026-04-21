@@ -46,7 +46,8 @@ export default function ProtectedRoute({ children, role }) {
   }, [token]);
 
   if (!token) {
-    return <Navigate to="/" replace />;
+    const redirectPath = role === "admin" ? "/admin-login" : "/student-login";
+    return <Navigate to={redirectPath} replace />;
   }
 
   if (isAdminMode && role === "student") {

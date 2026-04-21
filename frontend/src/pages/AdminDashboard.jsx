@@ -441,11 +441,10 @@ export default function AdminDashboard() {
                   {issueReports.map((report) => (
                     <tr key={report.id} className="hover:bg-gray-700/30">
                       <td className="px-4 py-3 text-sm">
-                        {studentById[report.student_id] || report.student_id}
+                        {report.student?.student_id || studentById[report.student_id] || report.student_id || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {desktopCodeById[report.desktop_id] ||
-                          report.desktop_id}
+                        {report.desktop?.desktop_id || desktopCodeById[report.desktop_id] || report.desktop_id || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-300">
                         {report.start_time}-{report.end_time}

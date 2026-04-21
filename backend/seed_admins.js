@@ -29,15 +29,15 @@ async function seedAdmins() {
   ];
 
   for (const adminData of admins) {
-    const existing = await Student.findOne({ email: adminData.email });
-    if (existing) {
-      console.log(`Admin ${adminData.email} already exists.`);
-    } else {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(adminData.password, salt);
-      await Student.create({ ...adminData, password: hashedPassword });
-      console.log(`Admin ${adminData.email} created.`);
-    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(adminData.password, salt);
+    
+    await Student.findOneAndUpdate(
+      { email: adminData.email },
+      { ...adminData, password: hashedPassword },
+      { upsert: true, new: true }
+    );
+    console.log(`Admin ${adminData.email} seeded/updated.`);
   }
 
   mongoose.connection.close();

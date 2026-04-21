@@ -21,13 +21,26 @@ const login = async (req, res) => {
       $or: [{ email: username }, { student_id: username }]
     });
 
+    console.log(`[AUTH DEBUG] Login attempt for username: "${username}"`);
+    if (!user) {
+      console.log(`[AUTH DEBUG] User NOT found in database.`);
+    } else {
+      const isMatch = await bcrypt.compare(password, user.password);
+      console.log(`[AUTH DEBUG] User found: ${user.email}, is_admin: ${user.is_admin}`);
+      console.log(`[AUTH DEBUG] Password match: ${isMatch}`);
+    }
+
     if (user && (await bcrypt.compare(password, user.password))) {
       res.json({
         access_token: generateToken(user._id),
         token_type: 'bearer',
       });
     } else {
-      res.status(401).json({ detail: 'Invalid username or password' });
+      let reason = 'Invalid credentials';
+      if (!user) reason = `User "${username}" not found in database`;
+      else if (!(await bcrypt.compare(password, user.password))) reason = 'Password mismatch';
+      
+      res.status(401).json({ detail: reason });
     }
   } catch (error) {
     logger.error('Login Error', error);

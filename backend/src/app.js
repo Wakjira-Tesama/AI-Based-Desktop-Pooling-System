@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
+const Student = require('./models/Student');
 
 dotenv.config();
 
@@ -46,6 +48,46 @@ app.use('/analytics', analyticsRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'SDPMS Backend (Node.js)' }));
+
+// Temporary seeding route for admin and general admin
+app.get('/api/debug/seed', async (req, res) => {
+  try {
+    const saltRounds = 10;
+    const adminPass = await bcrypt.hash('adminpassword', saltRounds);
+    const appliedAdminPass = await bcrypt.hash('admin_applied_pass', saltRounds);
+
+    const admins = [
+      {
+        student_id: 'admin_applied',
+        name: 'Applied Library Admin',
+        email: 'applied_admin@astu.edu.et',
+        password: appliedAdminPass,
+        is_admin: true,
+        library: 'applied',
+        is_verified: true
+      },
+      {
+        student_id: 'ADMIN-001',
+        name: 'Global Admin',
+        email: 'admin@astu.edu.et',
+        password: adminPass,
+        is_admin: true,
+        is_verified: true
+      }
+    ];
+
+    for (const a of admins) {
+      await Student.findOneAndUpdate(
+        { email: a.email },
+        { ...a },
+        { upsert: true, new: true }
+      );
+    }
+    res.json({ message: 'Admins seeded successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
