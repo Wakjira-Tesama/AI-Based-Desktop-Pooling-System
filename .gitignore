@@ -32,3 +32,6 @@ ocr_tmp_*
 !assets/*.png
 !assets/*.jpg
 !assets/*.jpeg
+!frontend/public/*.png
+!frontend/public/*.jpg
+!frontend/public/*.svg
