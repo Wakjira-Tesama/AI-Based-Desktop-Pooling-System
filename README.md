@@ -1,4 +1,4 @@
-﻿# AI-Based Desktop Pooling System (SDPMS)
+# AI-Based Desktop Pooling System (SDPMS)
 
 SDPMS is a FastAPI + React system for managing shared library desktops. It supports student registration with ID verification, desktop booking, live session tracking, and admin monitoring. The AI/ML component uses OCR to verify student IDs from uploaded or camera-captured images.
 

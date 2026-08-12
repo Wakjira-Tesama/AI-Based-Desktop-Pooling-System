@@ -1,4 +1,4 @@
-﻿# Deploy notes (current stack)
+# Deploy notes (current stack)
 
 SDPMS currently ships as:
 

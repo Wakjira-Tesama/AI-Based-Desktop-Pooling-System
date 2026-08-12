@@ -1,4 +1,4 @@
-﻿const logger = {
+const logger = {
   info: (msg) => console.log(`[INFO] ${new Date().toISOString()}: ${msg}`),
   debug: (msg) => {
     if (process.env.LOG_LEVEL === 'debug') {
