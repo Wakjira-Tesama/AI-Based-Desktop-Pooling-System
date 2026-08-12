@@ -1,0 +1,54 @@
+﻿name: Production Deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  record-deployment:
+    name: Record production deployment
+    if: >
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Create GitHub Deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.eventName === 'workflow_run'
+              ? context.payload.workflow_run.head_sha
+              : context.sha;
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+              environment: 'production',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'SDPMS production deployment signal for DevLake DORA',
+              transient_environment: false,
+              production_environment: true,
+            });
+            if (deployment.status === 201) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployment.data.id,
+                state: 'success',
+                environment: 'production',
+                description: 'Marked successful for DORA Deployment Frequency',
+              });
+              core.info(`Deployment ${deployment.data.id} marked success`);
+            } else {
+              core.warning(`Deployment create returned status ${deployment.status}`);
+            }
