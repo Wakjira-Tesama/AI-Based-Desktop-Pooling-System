@@ -56,6 +56,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Syntax check
+        run: node --check src/server.js && node --check src/app.js
+
   deploy:
     name: Production deploy
     needs: [frontend, backend]
