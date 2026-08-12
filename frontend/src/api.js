@@ -1,7 +1,10 @@
 import axios from "axios";
 
 const baseURL = (
-  import.meta.env.VITE_API_URL || "http://localhost:8000"
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? "https://ai-based-desktop-pooling-system-1.onrender.com"
+    : "http://localhost:8000")
 ).replace(/\/$/, "");
 
 const api = axios.create({
