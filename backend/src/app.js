@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
   res.send(`
     <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: white;">
       <div style="text-align: center; border: 1px solid #334155; padding: 2rem; border-radius: 12px; background: #1e293b;">
-        <h1 style="color: #38bdf8;">🚀 SDPMS API is Live</h1>
+        <h1 style="color: #38bdf8;">ðŸš€ SDPMS API is Live</h1>
         <p>The Node.js backend is successfully connected to MongoDB Atlas.</p>
         <p style="color: #94a3b8; font-size: 0.9rem;">Ready for requests from the frontend.</p>
       </div>
@@ -47,7 +47,12 @@ app.use('/issues', issueRoutes);
 app.use('/analytics', analyticsRoutes);
 
 // Health check
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'SDPMS Backend (Node.js)' }));
+app.get('/health', (req, res) => res.json({
+  status: 'ok',
+  service: 'SDPMS Backend (Node.js)',
+  timestamp: new Date().toISOString(),
+  uptime_seconds: Math.round(process.uptime()),
+}));
 
 // Temporary seeding route for admin and general admin
 app.get('/api/debug/seed', async (req, res) => {
