@@ -1,4 +1,4 @@
-# AI-Based Desktop Pooling System (SDPMS)
+﻿# AI-Based Desktop Pooling System (SDPMS)
 
 SDPMS is a FastAPI + React system for managing shared library desktops. It supports student registration with ID verification, desktop booking, live session tracking, and admin monitoring. The AI/ML component uses OCR to verify student IDs from uploaded or camera-captured images.
 
@@ -16,6 +16,7 @@ SDPMS is a FastAPI + React system for managing shared library desktops. It suppo
 - Getting Started
 - Security and Access Control
 - Deployment Notes
+- Engineering metrics / DevLake
 - Scope and Limitations
 
 ## Overview
@@ -358,6 +359,18 @@ npm --prefix frontend run dev
 - CORS is configurable via `CORS_ORIGINS`.
 - OCR requires Tesseract installed or `TESSERACT_CMD` set.
 - Frontend uses Vite; API URL via `VITE_API_URL`.
+
+## Engineering metrics / DevLake
+
+This repository is connected to the Apache DevLake project **SDPMS_Desktop_Pooling**.
+
+For full DORA panels in Grafana, this repo maintains:
+
+- Merged pull requests (Lead Time for Changes)
+- CI / production deployment signals on `main` (Deployment Frequency)
+- Incident issues labeled `incident` (Change Failure Rate + Time to Restore)
+
+After adding engineering activity, run **Collect** for project `SDPMS_Desktop_Pooling` in DevLake Config UI, then open the Grafana DORA dashboard filtered to that project.
 
 ## Scope and Limitations
 
