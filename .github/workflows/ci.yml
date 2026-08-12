@@ -1,10 +1,14 @@
-name: CI
+﻿name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   frontend:
@@ -51,3 +55,21 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+  deploy:
+    name: Production deploy
+    needs: [frontend, backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy dry-run signal
+        run: |
+          echo "Production deploy signal for DevLake DORA"
+          echo "commit=${GITHUB_SHA}"
+          echo "ref=${GITHUB_REF}"
+          echo "Frontend target: Vercel (auto from main)"
+          echo "Backend target: Render (auto from main)"
